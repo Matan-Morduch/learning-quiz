@@ -1,0 +1,17 @@
+# Obsidian Headless: keeps ~/vault in sync with Obsidian Sync (official `ob` CLI, npm obsidian-headless).
+# Set up once by hand (deploy/install.sh walks you through it): ob login, ob sync-setup, ob sync-config.
+#   systemctl --user status obsidian-sync      journalctl --user -u obsidian-sync -f
+[Unit]
+Description=Obsidian Headless Sync (~/vault)
+StartLimitIntervalSec=600
+StartLimitBurst=10
+
+[Service]
+Type=simple
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=%h/.local/bin/ob sync --continuous --path %h/vault
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target

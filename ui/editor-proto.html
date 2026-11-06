@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editor prototype</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  /* Prototype for Phase 0 of docs/INTERVIEW-PLAN.md: the interview's Python editor. */
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; flex-direction: column; background: var(--window); }
+  .ep-bar { display: flex; gap: var(--sp3); align-items: center; padding: var(--sp3) var(--sp4); border-bottom: 1px solid var(--separator); font: var(--footnote); color: var(--label-2); }
+  #ed { flex: 1; min-height: 0; }
+</style>
+</head>
+<body>
+<div class="ep-bar"><b>Editor prototype</b><span id="st">loading…</span></div>
+<div id="ed"></div>
+<script src="editor.js"></script>
+<script>
+  const st = document.getElementById('st');
+  window.ed = Quiz.editor.mount(document.getElementById('ed'), {
+    doc: 'class Solution:\n    def twoSum(self, nums: list[int], target: int) -> list[int]:\n        ',
+    onPause: (t) => { st.textContent = 'snapshot at ' + new Date().toLocaleTimeString() + ' · ' + t.split('\n').length + ' lines'; },
+  });
+  ed.ready.then(() => { st.textContent = 'ready'; ed.focus(); });
+</script>
+</body>
+</html>

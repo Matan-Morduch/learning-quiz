@@ -1,0 +1,2 @@
+@codemirror/state 6.4.1 · view 6.26.3 · language 6.10.1 · commands 6.5.0 · autocomplete 6.16.0 · lang-python 6.1.6 (all MIT)
+bundled with esbuild 0.25.10 by tools/build-codemirror.sh on 2026-11-03

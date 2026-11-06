@@ -1,0 +1,11 @@
+# One backup run of ~/learning-quiz/data (started by learning-quiz-backup.timer, or by hand:
+#   systemctl --user start learning-quiz-backup && journalctl --user -u learning-quiz-backup)
+[Unit]
+Description=Back up the quiz app's data folder
+
+[Service]
+Type=oneshot
+EnvironmentFile=-%h/.config/learning-quiz/env
+ExecStart=/bin/bash %h/learning-quiz/deploy/backup.sh
+Nice=10
+IOSchedulingClass=idle

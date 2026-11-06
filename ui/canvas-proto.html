@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Canvas prototype</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  /* Prototype for Phase 2 of docs/BOARD-VOICE-PLAN.md: a board answer played on Excalidraw. */
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; flex-direction: column; background: var(--window); }
+  :root[data-theme="dark"] { color-scheme: dark; }
+  :root[data-theme="light"] { color-scheme: light; }
+  .cp-bar { display: flex; align-items: center; gap: var(--sp3); padding: var(--sp3) var(--sp4); background: var(--material); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); border-bottom: 1px solid var(--separator); flex-wrap: wrap; }
+  .cp-title { font: var(--headline); margin-right: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cp-title small { display: block; font: var(--caption); color: var(--label-2); }
+  .cp-ctrl { display: flex; align-items: center; gap: var(--sp2); }
+  .cp-dots { display: flex; gap: 6px; padding: 0 var(--sp2); }
+  .cp-dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: var(--label-4); cursor: pointer; }
+  .cp-dots button.on { background: var(--accent); }
+  .cp-dots button.done { background: color-mix(in srgb, var(--accent) 45%, var(--label-4)); }
+  .cp-main { flex: 1; display: flex; min-height: 0; }
+  .cp-stage { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  #canvas { flex: 1; min-height: 320px; }
+  .cp-cap { padding: var(--sp3) var(--sp4); font: var(--callout); color: var(--label); background: var(--surface); border-top: 1px solid var(--separator); min-height: 44px; box-sizing: border-box; }
+  .cp-cap b { color: var(--label-2); font-weight: 600; margin-right: 6px; }
+  .cp-side { width: 360px; display: none; flex-direction: column; border-left: 1px solid var(--separator); background: var(--surface); }
+  .cp-side.open { display: flex; }
+  .cp-side header { display: flex; align-items: center; justify-content: space-between; padding: var(--sp3) var(--sp4); font: var(--headline); border-bottom: 1px solid var(--separator); }
+  .cp-side pre { flex: 1; margin: 0; padding: var(--sp3) var(--sp4); overflow: auto; font-size: 12px; line-height: 1.45; color: var(--label); background: var(--surface-2); white-space: pre-wrap; word-break: break-word; }
+  .cp-side img { max-width: 100%; border-top: 1px solid var(--separator); }
+  @media (max-width: 700px) {
+    .cp-bar { padding: var(--sp2) var(--sp4); gap: var(--sp2); }
+    .cp-title { flex-basis: 100%; }
+    .cp-ctrl.tools { margin-left: auto; }
+    .cp-main { flex-direction: column; }
+    .cp-side { width: auto; height: 40vh; border-left: 0; border-top: 1px solid var(--separator); }
+  }
+</style>
+</head>
+<body>
+  <div class="cp-bar">
+    <div class="cp-title"><span id="title">Canvas prototype</span><small>Excalidraw board · draw anywhere with the toolbar</small></div>
+    <div class="cp-ctrl">
+      <button class="btn btn-sm" id="prev" aria-label="Previous step">Prev</button>
+      <button class="btn btn-sm btn-primary" id="play">Play</button>
+      <button class="btn btn-sm" id="next" aria-label="Next step">Next</button>
+      <div class="cp-dots" id="dots" role="group" aria-label="Steps"></div>
+    </div>
+    <div class="cp-ctrl tools">
+      <button class="btn btn-sm btn-tinted" id="describe">Describe</button>
+      <button class="btn btn-sm" id="snap">Snapshot</button>
+      <div class="segmented" role="group" aria-label="Theme" id="theme">
+        <button aria-pressed="true" data-t="auto">Auto</button><button data-t="light">Light</button><button data-t="dark">Dark</button>
+      </div>
+    </div>
+  </div>
+  <div class="cp-main">
+    <div class="cp-stage">
+      <div id="canvas"></div>
+      <div class="cp-cap" id="cap" aria-live="polite"></div>
+    </div>
+    <aside class="cp-side" id="side">
+      <header><span id="side-title">describe()</span><button class="btn btn-sm btn-plain" id="close">Close</button></header>
+      <pre id="out"></pre>
+    </aside>
+  </div>
+<script src="canvas.js"></script>
+<script>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const board = await (await fetch('canvas-sample.json')).json();
+  $('title').textContent = board.title;
+  const N = board.steps.length;
+  $('dots').innerHTML = board.steps.map((_, i) => `<button data-i="${i}" aria-label="Step ${i + 1}"></button>`).join('');
+
+  let timer = 0, playing = false;
+  const sync = () => {
+    const k = api.step;
+    $('cap').innerHTML = k >= 0 ? `<b>${k + 1}/${N}</b>${board.steps[k].say.replace(/</g, '&lt;')}` : '';
+    [...$('dots').children].forEach((d, i) => { d.className = i === k ? 'on' : i < k ? 'done' : ''; });
+    $('prev').disabled = k <= 0; $('next').disabled = k >= N - 1;
+    $('play').textContent = playing ? 'Pause' : k >= N - 1 ? 'Replay' : 'Play';
+    if ($('side').classList.contains('open') && $('side-title').textContent === 'describe()') $('out').textContent = JSON.stringify(api.describe(), null, 1);
+  };
+  const api = Quiz.canvas.mount($('canvas'), { theme: 'auto', onChange: sync });
+  window.cv = api;   // for poking from the console / tests
+
+  const words = (s) => s.split(/\s+/).length;
+  const stop = () => { playing = false; clearTimeout(timer); sync(); };
+  const tick = () => {
+    if (!playing) return;
+    if (api.step >= N - 1) return stop();
+    api.next().then(sync);
+    timer = setTimeout(tick, Math.max(2600, words(board.steps[api.step + 1 < N ? api.step + 1 : api.step].say) * 330));
+  };
+  $('play').onclick = async () => {
+    if (playing) return stop();
+    playing = true;
+    if (api.step >= N - 1 || api.step < 0) { await api.play(board); sync(); }
+    timer = setTimeout(tick, Math.max(2600, words(board.steps[api.step].say) * 330));
+    sync();
+  };
+  $('next').onclick = () => { stop(); api.next().then(sync); };
+  $('prev').onclick = () => { stop(); api.prev().then(sync); };
+  $('dots').onclick = (e) => { const i = e.target.dataset.i; if (i !== undefined) { stop(); api.goTo(+i, { animate: +i === api.step + 1 }).then(sync); } };
+  $('describe').onclick = () => { $('side').classList.add('open'); $('side-title').textContent = 'describe()'; $('out').textContent = JSON.stringify(api.describe(), null, 1); api.fit(); };
+  $('snap').onclick = async () => {
+    const blob = await api.snapshotPng();
+    $('side').classList.add('open'); $('side-title').textContent = `snapshotPng() · ${Math.round(blob.size / 1024)} KB`;
+    $('out').innerHTML = `<img alt="Snapshot of the canvas" src="${URL.createObjectURL(blob)}">`;
+    api.fit();
+  };
+  $('close').onclick = () => { $('side').classList.remove('open'); api.fit(); };
+  $('theme').onclick = (e) => {
+    const t = e.target.dataset.t; if (!t) return;
+    [...$('theme').children].forEach((b) => b.setAttribute('aria-pressed', String(b === e.target)));
+    if (t === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t);
+  };
+
+  await api.play(board, { animate: true });
+  sync();
+})();
+</script>
+</body>
+</html>

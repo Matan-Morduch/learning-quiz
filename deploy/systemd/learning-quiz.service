@@ -1,0 +1,30 @@
+# The quiz app, always on. Installed to ~/.config/systemd/user/ by deploy/install.sh
+# (and refreshed by the post-receive hook on every `git push home main`).
+#   systemctl --user status learning-quiz      journalctl --user -u learning-quiz -f
+# Machine-specific overrides go in ~/.config/learning-quiz/env (it wins over the lines below).
+[Unit]
+Description=Learning quiz app (http://127.0.0.1:4747, HTTPS via tailscale serve)
+After=obsidian-sync.service
+StartLimitIntervalSec=300
+StartLimitBurst=20
+
+[Service]
+Type=simple
+WorkingDirectory=%h/learning-quiz
+Environment=PORT=4747
+Environment=QUIZ_HOST=127.0.0.1
+Environment=QUIZ_LEARNING_DIR=%h/vault/Learning
+Environment=QUIZ_CLAUDE_BIN=%h/.local/bin/claude
+Environment=QUIZ_WHISPER_BIN=%h/.local/bin/whisper-cli
+Environment=PATH=%h/.local/bin:/usr/local/cuda-12.9/bin:/usr/local/bin:/usr/bin:/bin
+Environment=NODE_ENV=production
+EnvironmentFile=-%h/.config/learning-quiz/env
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+# Claude / whisper / the voice sidecar are children of this service; stop them with it.
+KillMode=control-group
+TimeoutStopSec=15
+
+[Install]
+WantedBy=default.target

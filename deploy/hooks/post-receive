@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Push-to-deploy. Lives in ~/learning-quiz.git/hooks/post-receive on the server (deploy/mac/push.sh
+# and deploy/install.sh put it there). On a push of `main` it:
+#   1. checks main out into ~/learning-quiz (a normal git checkout whose origin is the bare repo;
+#      untracked/ignored files such as data/ are never touched),
+#   2. refreshes the systemd user units from deploy/systemd/ if they changed,
+#   3. restarts learning-quiz.service and waits for /api/health.
+# Everything it prints shows up in the Mac's `git push` output.
+set -euo pipefail
+
+APP="${QUIZ_APP_DIR:-$HOME/learning-quiz}"
+BARE="$(cd "$(dirname "$0")/.." && pwd)"
+PORT="${PORT:-4747}"
+
+deploy=0
+while read -r _old new ref; do
+  [[ "$ref" == refs/heads/main && "$new" != 0000000000000000000000000000000000000000 ]] && deploy=1
+done
+[[ $deploy == 1 ]] || { echo "deploy: no update to main, nothing to do."; exit 0; }
+
+# Hooks run with GIT_DIR set to the bare repo; unset it or every git -C below would act on the bare repo.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_QUARANTINE_PATH
+
+echo "deploy: checking out main into $APP"
+mkdir -p "$APP"
+if [[ ! -d "$APP/.git" ]]; then
+  git -C "$APP" init -q -b main
+  git -C "$APP" remote add origin "$BARE"
+fi
+git -C "$APP" fetch -q origin main
+# Edits made directly on the server (not committed) would be wiped by the forced checkout: stash them
+# first, so they can be got back with `git -C ~/learning-quiz stash list` / `stash pop`.
+if [[ -n "$(git -C "$APP" status --porcelain 2>/dev/null)" ]]; then
+  git -C "$APP" stash push -q -u -m "auto-stash before deploy $(date -Is)" \
+    && echo "deploy: stashed uncommitted edits in $APP (git -C $APP stash list)"
+fi
+git -C "$APP" checkout -q -f -B main FETCH_HEAD
+mkdir -p "$APP/data" && chmod 700 "$APP/data"
+echo "deploy: now at $(git -C "$APP" log -1 --format='%h %s')"
+
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+if ! systemctl --user show-environment >/dev/null 2>&1; then
+  echo "deploy: no systemd user session reachable; run deploy/install.sh on the server once."
+  exit 0
+fi
+
+UNIT_DIR="$HOME/.config/systemd/user"
+changed=0
+if [[ -d "$UNIT_DIR" ]]; then
+  for f in "$APP"/deploy/systemd/*.service "$APP"/deploy/systemd/*.timer; do
+    [[ -e "$f" ]] || continue
+    dest="$UNIT_DIR/$(basename "$f")"
+    [[ -e "$dest" ]] || continue            # only refresh units install.sh already set up
+    cmp -s "$f" "$dest" || { cp "$f" "$dest"; changed=1; echo "deploy: updated $(basename "$f")"; }
+  done
+  [[ $changed == 1 ]] && systemctl --user daemon-reload
+fi
+
+if ! systemctl --user cat learning-quiz.service >/dev/null 2>&1; then
+  echo "deploy: learning-quiz.service isn't installed yet: run ~/learning-quiz/deploy/install.sh on the server."
+  exit 0
+fi
+
+echo "deploy: restarting learning-quiz.service"
+systemctl --user restart learning-quiz.service
+for _ in $(seq 1 40); do
+  if body="$(curl -sf --max-time 2 "http://127.0.0.1:$PORT/api/health" 2>/dev/null)"; then
+    echo "deploy: ✓ up: $body"
+    exit 0
+  fi
+  sleep 0.5
+done
+echo "deploy: ✗ the app didn't answer /api/health within 20 s. Last log lines:"
+journalctl --user -u learning-quiz.service -n 25 --no-pager 2>/dev/null || true
+exit 1

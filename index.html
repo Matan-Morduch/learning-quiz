@@ -1,0 +1,2455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>
+// Served under a prefix (homebox: tailscale serve /quiz/ → this app). "/quiz" without the slash reaches us too,
+// and every URL here is relative, so add the slash before anything loads from the wrong folder.
+if (!location.pathname.endsWith('/') && !/\.[a-z0-9]+$/i.test(location.pathname)) location.replace(location.pathname + '/' + location.search + location.hash);
+</script>
+<meta name="app-version" content="__APP_VERSION__">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="color-scheme" content="light dark">
+<title>Learning Quiz</title>
+<!-- Home-screen app (iPhone "Add to Home Screen", Android install). All paths relative: the app is served at / and under /quiz/.
+     A service worker (sw.js → ui/sw.js) keeps a copy for offline practice. It is network-first, so with a connection
+     the code is always the current one; the copy is only used when the network fails or is too slow. -->
+<link rel="manifest" href="ui/app/manifest.json">
+<link rel="apple-touch-icon" href="ui/app/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="ui/app/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Learning">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<!-- Status-bar / browser-chrome colour: the window colour. ui/prefs.js rewrites both to the effective theme when Settings forces one. -->
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="ui/base.css">
+<!-- Icons first: the shell renders them as soon as it starts (ui/icons.js defines Quiz.icon). -->
+<script src="ui/icons.js"></script>
+<!-- Preferences next: applies theme, accent, text size before first paint (ui/prefs.js defines Quiz.prefs). -->
+<script src="ui/prefs.js"></script>
+<style>
+/* App shell and quiz screens. Tokens and shared controls live in ui/base.css (Apple HIG on the web). */
+
+/* ---------- window: sidebar + content ---------- */
+.app { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); min-height: 100vh; }
+body.side-collapsed .app { grid-template-columns: minmax(0, 1fr); }
+body.side-collapsed .side { display: none; }
+
+/* Source-list sidebar on a translucent material */
+.side { position: sticky; top: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; z-index: 30;
+  background: var(--sidebar); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  border-right: 1px solid var(--separator); }
+.side-head { display: flex; align-items: center; gap: 10px; height: var(--toolbar-h); padding: 0 10px 0 16px; flex: none; }
+.app-icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; flex: none; color: #fff;
+  background: linear-gradient(160deg, #5ac8fa, #007aff 55%, #5856d6); box-shadow: 0 1px 2px rgb(0 0 0 / .18), inset 0 0 0 .5px rgb(255 255 255 / .25); }
+.app-icon svg { width: 17px; height: 17px; stroke-width: 2; }
+.brand { flex: 1; min-width: 0; font: 600 15px/20px var(--font); letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 10px 16px; display: flex; flex-direction: column; gap: 22px; }
+.side-nav { display: flex; flex-direction: column; gap: 1px; }
+.side-nav .tab { display: flex; align-items: center; justify-content: flex-start; gap: 10px; width: 100%; height: 34px; padding: 0 10px;
+  border-radius: var(--r-sm); background: transparent; color: var(--label); font: 400 15px/1 var(--font); text-align: left; }
+.side-nav .tab .ic { width: 19px; height: 19px; color: var(--accent); }
+.side-nav .tab:hover:not(.active) { background: var(--fill); }
+.side-nav .tab.active { background: var(--accent-tint); font-weight: 600; }
+.side-sec { display: flex; flex-direction: column; gap: 1px; }
+.side-label { display: flex; justify-content: space-between; align-items: baseline; padding: 0 10px 6px; font: 600 12px/16px var(--font); color: var(--label-2); }
+.side-label .n { font-weight: 500; color: var(--label-3); font-variant-numeric: tabular-nums; }
+.side-item { display: flex; flex-direction: column; align-items: stretch; gap: 1px; width: 100%; padding: 6px 10px; border-radius: var(--r-sm);
+  background: transparent; text-align: left; font: inherit; }
+.side-item:hover { background: var(--fill); }
+.side-item .t { font: 400 14px/19px var(--font); color: var(--label); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-item .m { font: 400 12px/16px var(--font); color: var(--label-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-empty { padding: 2px 10px; font: var(--footnote); color: var(--label-3); }
+.side-mastery { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 5px 8px; padding: 6px 10px; }
+.side-mastery .tag { color: var(--label); font: 400 14px/18px var(--font); min-width: 0; }
+.side-mastery .tag span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-mastery .p { font: 400 12px/16px var(--font); color: var(--label-2); font-variant-numeric: tabular-nums; }
+.side-mastery .progress { grid-column: 1 / -1; height: 3px; }
+.side-mastery .progress > span { background: var(--tag); }
+.side-foot { flex: none; padding: 10px 20px 14px; font: var(--caption); color: var(--label-3); border-top: 1px solid var(--separator); }
+/* Daily goal (pref quiz.dailyGoal): "12 / 20 today · 4-day streak" + a thin bar, above the answer count */
+.side-goal { margin: 0 0 8px; }
+.side-goal .g-line { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.side-goal .g-line b { color: var(--label); font-weight: 600; }
+.side-goal .g-streak { white-space: nowrap; }
+.side-goal .progress { height: 4px; margin-top: 5px; }
+.side-goal .progress > span { background: var(--accent); }
+.side-goal.met .progress > span { background: var(--green); }
+.side-goal.met .g-line b { color: var(--green); }
+.side-scrim { display: none; }
+
+.main { min-width: 0; display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; --chrome-top: 0px; }
+/* Toolbar: only when the sidebar is hidden (collapsed, or a narrow window) */
+.toolbar { display: none; position: sticky; top: 0; z-index: 20; height: var(--toolbar-h); align-items: center; gap: 6px; padding: 0 10px;
+  background: var(--material); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border-bottom: 1px solid var(--separator); }
+.toolbar .where { font: 600 15px/20px var(--font); }
+body.side-collapsed .toolbar { display: flex; }
+body.side-collapsed .main { --chrome-top: var(--toolbar-h); }
+
+.wrap { flex: 1; width: 100%; max-width: 940px; margin: 0 auto; padding: 44px 40px 96px; }
+body.quizzing .wrap { max-width: calc(var(--read-w) + 80px); }
+body.quizzing.chatting .wrap { max-width: 1220px; }
+.page-head { margin: 0 0 28px; }
+.page-head h1 { font: var(--large-title); letter-spacing: -.022em; margin: 0; }
+.page-head p { font: var(--body); color: var(--label-2); margin: 4px 0 0; max-width: 62ch; }
+body.setup-off .page-head, body.quizzing #setup { display: none; }
+/* A run's summary has the stage until Done (or another sidebar item) */
+.wrap:has(> #result:not(.hidden)) :is(#setup, .page-head) { display: none; }
+
+/* Map: the whole content area, no page chrome (ui/map.js renders into #tab-map) */
+body.mode-map .wrap { max-width: none; padding: 0; }
+body.mode-map .page-head, body.mode-map .statusbar { display: none; }
+body.mode-map #tab-map { position: relative; height: calc(100vh - var(--chrome-top)); height: calc(100dvh - var(--chrome-top)); overflow: hidden; }
+
+/* ---------- setup: grouped inset lists ---------- */
+.group { margin: 0 0 28px; }
+.group-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px 8px; min-height: 28px; }
+.group-head h2 { font: 600 13px/18px var(--font); color: var(--label-2); margin: 0; }
+.group-head .btn-plain { height: 24px; font-size: 13px; }
+.list { box-shadow: var(--shadow-1); }
+.list-footer { margin: 0; }
+
+/* topic picker */
+.topics > p { padding: 16px; margin: 0; color: var(--label-2); }
+details.subject { position: relative; }
+details.subject + details.subject::before, .topic + .topic::before, .opt-row + .opt-row::before, .extras > .opt-row::before,
+.row-item + .row-item::before {
+  content: ""; position: absolute; top: 0; left: 16px; right: 0; border-top: 1px solid var(--separator); }
+details.subject > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 16px 16px minmax(0, 1fr) auto; gap: 12px;
+  align-items: center; padding: 12px 16px; min-height: 56px; transition: background var(--dur); }
+details.subject > summary::-webkit-details-marker { display: none; }
+details.subject > summary:hover { background: color-mix(in srgb, var(--fill) 60%, transparent); }
+.chev { color: var(--label-3); width: 14px; height: 14px; transition: transform var(--dur) var(--ease); }
+details[open] > summary .chev { transform: rotate(90deg); }
+.t-name { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.t-name b { font: 400 17px/22px var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+details.subject > summary .t-name b { font-weight: 600; }
+.t-name small { font: var(--footnote); color: var(--label-2); }
+.t-name small .warn { color: color-mix(in srgb, var(--orange) 85%, var(--label)); }
+.t-mastery { display: flex; align-items: center; gap: 10px; font: 400 13px/1 var(--font); color: var(--label-2); font-variant-numeric: tabular-nums; }
+.t-mastery .progress { width: 56px; }
+.t-mastery .progress > span { background: var(--tag, var(--accent)); }
+.t-mastery .pct { width: 34px; text-align: right; }
+details.subject .inner { position: relative; background: color-mix(in srgb, var(--surface-2) 45%, var(--surface)); }
+details.subject .inner::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; border-top: 1px solid var(--separator); }
+.topic { position: relative; display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 12px; align-items: center;
+  padding: 10px 16px 10px 72px; min-height: 48px; cursor: pointer; }
+.topic + .topic::before { left: 72px; }
+.topic .t-name b { font-size: 15px; line-height: 20px; }
+
+/* option rows: label left, control right */
+.opt-row { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap;
+  min-height: 52px; padding: 10px 16px; }
+.opt-row > .opt-label { font: var(--body); color: var(--label); }
+.opt-row .hint-text { flex-basis: 100%; font: var(--footnote); color: var(--label-2); margin-top: -4px; }
+.extras { display: contents; }
+.opt-row select.field { width: auto; min-width: 200px; background-color: var(--fill); }
+.setup-actions { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin: -8px 0 36px; flex-wrap: wrap; }
+.setup-actions .footnote { margin-right: auto; color: var(--label-2); }
+.setup-actions .btn-primary { min-width: 120px; }
+
+/* Study next: one row per flagged gap */
+#studyNext { margin-bottom: 32px; }
+body:not([data-tab="smart"]) #studyNext { display: none; }
+/* Study next: one card per gap, in a grid (2 columns when there's room). Text is clamped so cards stay
+   short; "Show more" opens the rest. Actions are real buttons: Practice first, the quiet ones last. */
+.gap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 12px; align-items: start; }
+.gap { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-1); min-width: 0; }
+.gap.queued { opacity: .7; }
+.gap-head { display: flex; align-items: center; gap: 8px; min-height: 24px; }
+.gap-head .tag { font: var(--footnote); font-weight: 600; color: var(--label-2); }
+.gap-head .grow { flex: 1; }
+.gap-head .icon-btn { width: 28px; height: 28px; margin: -4px -6px -4px 0; color: var(--label-3); }
+.gap-head .icon-btn:hover { color: var(--red); }
+.gap .concept { font: var(--headline); margin: 0; overflow-wrap: anywhere; }
+.gap .said { font: var(--footnote); color: var(--label-2); margin: -4px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gap .gap-text { font: var(--subhead); color: var(--label); margin: 0; overflow-wrap: anywhere; }
+.gap .gap-tip { display: flex; gap: 8px; align-items: flex-start; font: var(--subhead); padding: 8px 10px; border-radius: var(--r); background: color-mix(in srgb, var(--orange) 10%, var(--surface-2)); overflow-wrap: anywhere; }
+.gap .gap-tip svg { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--orange); }
+.gap .gap-note { font: var(--footnote); color: var(--label-2); display: flex; gap: 6px; align-items: flex-start; }
+.gap .gap-note svg { width: 14px; height: 14px; flex: none; margin-top: 1px; }
+.gap .gap-body.clamp .gap-text, .gap .gap-body.clamp .gap-tip > span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.gap .gap-body.clamp .gap-note { display: none; }
+.gap .gap-body { display: flex; flex-direction: column; gap: 8px; }
+.gap .gap-more { align-self: flex-start; height: 24px; padding: 0; font: var(--footnote); font-weight: 600; margin-top: -4px; }
+.gap .why { font: var(--subhead); color: var(--label-2); display: flex; gap: 8px; align-items: flex-start; }
+.gap .why .spinner { margin: 2px 0 0; }
+.gap .why > svg { width: 16px; height: 16px; margin-top: 2px; color: var(--orange); flex: none; }
+.gap .gprog { display: flex; align-items: center; gap: 10px; font: var(--footnote); color: var(--label-2); }
+.gap .gprog .progress { width: 72px; flex: none; }
+.gap-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+.gap-actions .btn { height: 30px; font-size: 14px; }
+.gap-actions .btn svg { width: 15px; height: 15px; }
+@media (pointer: coarse) { .gap-actions .btn { height: 40px; } }
+.gap-head .btn-plain { height: 28px; padding: 0 6px; font: var(--footnote); font-weight: 600; }
+.gap-head .btn-plain svg { width: 14px; height: 14px; }
+.closed { margin-top: 10px; }
+.closed > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 4px 16px; font: var(--subhead); color: var(--label-2); }
+.closed > summary::-webkit-details-marker { display: none; }
+.closed .list { margin-top: 8px; }
+.row-item { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 16px; min-height: 44px; font: var(--subhead); }
+.row-item .grow { flex: 1; min-width: 0; }
+.row-item .sub { display: block; font: var(--footnote); color: var(--label-2); }
+.row-item .ok { color: var(--green); width: 18px; height: 18px; }
+
+/* ---------- the question card ---------- */
+.quiz-area { display: grid; grid-template-columns: minmax(0, var(--read-w)); justify-content: center; gap: 24px; align-items: start; }
+body.chatting .quiz-area { grid-template-columns: minmax(0, var(--read-w)) 340px; }
+.qcard { background: var(--surface); border-radius: var(--r-xl); padding: 28px 32px 28px; box-shadow: var(--shadow-1), 0 0 0 .5px var(--separator); position: relative; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.meta .badge svg { width: 13px; height: 13px; }
+.q { font: var(--title2); letter-spacing: -.015em; margin: 14px 0 18px; overflow-wrap: anywhere; }
+#detail:not(:empty) { margin: -4px 0 18px; }
+#beforeInput:not(:empty) { margin-bottom: 4px; }
+.field-wrap { position: relative; }
+#input { min-height: 150px; padding: 14px 16px 48px; border-radius: var(--r-lg); }
+.qcard textarea.field { resize: none; overflow: hidden; }
+#answerExtras { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+#answerExtras:empty { display: none; }
+#revealControls { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+#revealControls > button:not(#reveal) { margin-right: auto; }
+#reveal { order: 2; padding: 0 18px 0 22px; }
+#reveal .key { background: rgb(255 255 255 / .2); color: rgb(255 255 255 / .85); margin-left: 4px; }
+#reveal:disabled, #revealControls:has(#reveal:disabled) { display: none; }
+
+/* prose: answers, feedback, explanations */
+.prose { font: var(--body); }
+.prose > :first-child { margin-top: 0; }
+.prose > :last-child { margin-bottom: 0; }
+.prose p { margin: 0 0 12px; }
+.prose ul, .prose ol { margin: 6px 0 12px; }
+
+/* after reveal: sections with quiet headers */
+#after { margin-top: 26px; padding-top: 6px; border-top: 1px solid var(--separator); }
+.answer { margin-top: 24px; }
+.answer > .section-label, .answer > .sec-head { display: flex; align-items: center; gap: 6px; }
+.sec-head { justify-content: space-between; margin: 0 0 8px; }
+.sec-head .section-label { margin: 0; display: flex; align-items: center; gap: 6px; }
+.section-label svg { width: 15px; height: 15px; }
+.yours { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--surface-2); border-radius: var(--r); padding: 12px 16px; font: var(--body); }
+#afterExtras:empty { display: none; }
+
+/* AI feedback */
+.ai-top { display: flex; align-items: center; gap: 16px; }
+.ring { position: relative; width: 60px; height: 60px; flex: none; }
+.ring svg { width: 60px; height: 60px; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 5; }
+.ring .track { stroke: var(--fill); }
+.ring .val { stroke: var(--c); stroke-linecap: round; transition: stroke-dashoffset .6s var(--ease); }
+.ring b { position: absolute; inset: 0; display: grid; place-items: center; font: 700 19px/1 var(--font-rounded); font-variant-numeric: tabular-nums; }
+.ai-top .verdict { font: var(--callout); line-height: 1.4; }
+.ai-graded { margin: 0 0 var(--sp4, 16px); padding: 10px 14px; background: var(--fill, rgba(120,120,128,.12)); border-radius: var(--r, 10px); font: var(--subhead); line-height: 1.45; color: var(--label); }
+.ai-graded > span { display: block; font: 600 12px/16px var(--font); color: var(--label-2); margin-bottom: 2px; }
+.ai-top .verdict .sc { display: block; font: 600 13px/18px var(--font); color: var(--c); margin-bottom: 2px; }
+.ai-group { margin-top: 18px; }
+.ai-group h4 { font: 600 15px/20px var(--font); margin: 0 0 6px; }
+.ai-list { list-style: none; margin: 0; padding: 0; background: var(--surface-2); border-radius: var(--r); overflow: hidden; }
+.ai-list li { position: relative; display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 10px 14px; font: var(--subhead); line-height: 21px; }
+.ai-list li + li::before { content: ""; position: absolute; top: 0; left: 40px; right: 0; border-top: 1px solid var(--separator); }
+.ai-list li > svg { width: 17px; height: 17px; margin-top: 2px; flex: none; }
+.ai-list .good svg { color: var(--green); } .ai-list .miss svg { color: var(--orange); } .ai-list .bad svg { color: var(--red); }
+.ai-list .key { font: 600 12px/1 var(--font); color: color-mix(in srgb, var(--orange) 85%, var(--label)); background: color-mix(in srgb, var(--orange) 14%, transparent);
+  padding: 2px 6px; border-radius: 4px; margin-right: 6px; vertical-align: 1px; }
+.ai-list .why { color: var(--label-2); margin-top: 3px; }
+.ai-empty { font: var(--subhead); color: var(--label-3); }
+.follow { margin-top: 18px; padding: 14px 16px; border-radius: var(--r-lg); background: var(--surface-2); }
+.follow .fq { display: flex; gap: 8px; align-items: flex-start; font: var(--callout); }
+.follow .fq svg { width: 18px; height: 18px; color: var(--accent); margin-top: 1px; flex: none; }
+.follow textarea { min-height: 64px; margin: 10px 0 8px; background: var(--surface); }
+.follow .reply { margin-top: 10px; font: var(--subhead); }
+.ai-wait { display: flex; align-items: center; gap: 10px; font: var(--subhead); color: var(--label-2); padding: 10px 0; }
+.ai-wait .spinner { margin: 0; }
+
+
+/* rating: a row of four, tinted by meaning */
+.rate-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.rate-head .section-label { margin: 0; }
+.rate-head .footnote { color: var(--label-3); }
+.rate { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.rate button { --c: var(--label-2); position: relative; display: flex; flex-direction: column; gap: 3px; height: 62px; padding: 0 6px;
+  border-radius: var(--r-lg); background: color-mix(in srgb, var(--c) 10%, var(--surface)); color: color-mix(in srgb, var(--c) 82%, var(--label));
+  font: 600 17px/1.1 var(--font); transition: background var(--dur), box-shadow var(--dur), transform .1s; }
+.rate button:hover:not(:disabled) { background: color-mix(in srgb, var(--c) 17%, var(--surface)); }
+.rate button:active { transform: scale(.98); }
+.rate small { font: 400 12px/14px var(--font); color: var(--label-2); }
+.rate .again { --c: var(--again); } .rate .hard { --c: var(--hard); } .rate .good { --c: var(--good); } .rate .easy { --c: var(--easy); }
+.rate button.suggested { background: color-mix(in srgb, var(--c) 18%, var(--surface)); box-shadow: inset 0 0 0 2px var(--c); }
+.rate button.suggested::after { content: "Suggested"; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); padding: 2px 8px;
+  border-radius: var(--r-pill); background: var(--c); color: #fff; font: 600 11px/14px var(--font); letter-spacing: .01em; white-space: nowrap; }
+
+.ai-regraded { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 12px; font: var(--subhead); color: var(--green); }
+.ai-regraded svg { flex: none; margin-top: 1px; }
+.ai-tip { display: flex; gap: 8px; margin: 0; font: var(--callout); line-height: 1.45; color: var(--label); }
+.ai-tip svg { flex: none; color: var(--yellow, var(--orange)); margin-top: 2px; }
+.regrade { margin-top: 10px; padding: 10px 12px; border-radius: var(--r); background: color-mix(in srgb, var(--green) 10%, var(--surface)); display: flex; flex-direction: column; gap: 8px; }
+.regrade .rg-head { display: flex; gap: 8px; align-items: center; font: var(--subhead); color: var(--label); }
+.regrade .rg-head svg { color: var(--green); }
+.regrade .rg-row { display: flex; gap: 8px; align-items: flex-start; font: var(--footnote); color: var(--label); line-height: 1.4; }
+.regrade .rg-row.muted { color: var(--label-2); }
+.regrade .rg-row svg { flex: none; width: 15px; height: 15px; margin-top: 1px; color: var(--label-2); }
+.regrade .rg-row span { flex: 1; }
+.regrade .rg-ans { font: var(--footnote); background: var(--surface); border-radius: var(--r-sm); padding: 8px 10px; max-height: 220px; overflow: auto; }
+.regrade .rg-btns { display: flex; gap: 8px; margin-top: 6px; }
+.ai-group.blocks .blocks-sub { font: var(--subhead); color: var(--label-2); margin: 0 0 8px; }
+.block-list { list-style: none; margin: 0; padding: 0; background: var(--surface-2); border-radius: var(--r); }
+.block-list li { display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 14px; font: var(--callout); line-height: 1.4; }
+.block-list li + li { border-top: 1px solid var(--separator); }
+.block-list .ic { color: var(--accent); display: inline-flex; }
+.block-list .grow { flex: 1; }
+.decide { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 44px; }
+.decide:empty { display: none; }
+.decide .dc-what { flex: 1; min-width: 200px; display: flex; align-items: center; gap: 10px; font: var(--callout); color: var(--label-2); }
+.decide .dc-what .activity { flex: none; }
+.decide .dc-pill { --c: var(--label-2); display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--c) 16%, var(--surface)); color: color-mix(in srgb, var(--c) 85%, var(--label)); font: 600 15px/1 var(--font); }
+.decide .dc-why { font: var(--footnote); color: var(--label-2); }
+.decide .dc-change { background: none; border: 0; padding: 4px 2px; color: var(--accent); font: var(--callout); cursor: pointer; }
+.decide .dc-change:hover { text-decoration: underline; }
+.decide .dc-next { min-width: 120px; }
+.decide .dc-next kbd { font: 500 12px/1 var(--font); opacity: .75; margin-left: 6px; }
+.rate-head.hidden, .rate.hidden { display: none; }
+.decide:not(:empty) + .rate-head:not(.hidden) { margin-top: 16px; }
+
+.past:not(:empty) { margin-top: 28px; }
+.past .item { position: relative; padding: 10px 0; border-top: 1px solid var(--separator); }
+.past .item .when { font: var(--footnote); color: var(--label-2); }
+.past .item .yours { margin-top: 6px; font: var(--subhead); padding: 10px 14px; }
+
+/* toast: a floating HUD */
+.toast { position: fixed; left: 50%; bottom: 56px; z-index: 80; transform: translateX(-50%); max-width: min(520px, calc(100vw - 32px));
+  padding: 10px 18px; border-radius: var(--r-lg); background: var(--material-thick); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  box-shadow: var(--shadow-3); border: 1px solid var(--separator); font: var(--subhead); color: var(--label); animation: pop-in .2s var(--spring); }
+
+/* ---------- side chat: an inspector on the right ---------- */
+.inspector { position: sticky; top: calc(var(--chrome-top) + 24px); display: flex; flex-direction: column; max-height: calc(100vh - var(--chrome-top) - 88px);
+  background: var(--material-thick); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  border: 1px solid var(--separator); border-radius: var(--r-xl); box-shadow: var(--shadow-2); overflow: hidden; }
+.insp-head { display: flex; align-items: center; gap: 8px; padding: 14px 16px 10px; font: var(--headline); font-size: 15px; }
+.insp-head svg { width: 18px; height: 18px; color: var(--accent); }
+#chatLog { flex: 1; min-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 6px 14px 10px; font: var(--subhead); }
+#chatLog > p { color: var(--label-2); font: var(--subhead); margin: 4px 2px; }
+.msg { max-width: 88%; padding: 8px 12px; border-radius: 18px; overflow-wrap: anywhere; line-height: 1.42; }
+.msg p { margin: 0 0 6px; } .msg p:last-child { margin-bottom: 0; }
+.msg ul, .msg ol { margin: 4px 0; padding-left: 18px; }
+.msg pre { font-size: 12px; margin: 6px 0; background: var(--surface); }
+.msg.me { align-self: flex-end; background: var(--accent); color: var(--on-accent); white-space: pre-wrap; border-bottom-right-radius: 6px; }
+.msg.ai { align-self: flex-start; background: var(--surface-2); color: var(--label); border-bottom-left-radius: 6px; }
+.msg.ai.err { color: var(--label-2); display: flex; gap: 6px; }
+.msg.ai.err svg { width: 16px; height: 16px; color: var(--orange); flex: none; margin-top: 2px; }
+.msg.wait { display: inline-flex; align-items: center; gap: 8px; color: var(--label-2); }
+.msg.wait .spinner { margin: 0; }
+.msg-actions { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--separator); }
+.msg-actions .btn { height: 26px; padding: 0 4px; font-size: 13px; }
+.msg-actions .done { display: inline-flex; gap: 5px; align-items: center; font: var(--footnote); color: var(--label-2); }
+.msg-actions .done svg { width: 14px; height: 14px; color: var(--green); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 14px 4px; border-top: 1px solid var(--separator); }
+.chat-input { padding: 8px 14px 14px; }
+.chat-input .field-wrap { display: flex; align-items: flex-end; gap: 6px; background: var(--surface); border-radius: 18px; padding: 4px 4px 4px 12px;
+  box-shadow: inset 0 0 0 1px var(--separator); }
+.chat-input .field-wrap:focus-within { box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-tint); }
+#chatInput { min-height: 0; height: 36px; max-height: 140px; padding: 8px 0; border: 0; background: none; box-shadow: none; resize: none; font: var(--subhead); line-height: 20px; }
+#chatSend { width: 28px; height: 28px; padding: 0; border-radius: 50%; flex: none; margin-bottom: 2px; }
+#chatSend svg { width: 16px; height: 16px; stroke-width: 2.2; }
+.chat-input .think-mic { position: static; margin: 0 0 2px; }
+.chat-keys { margin-top: 6px; font: var(--caption); color: var(--label-3); }
+#chat.locked #chatLog ~ * { opacity: .45; pointer-events: none; }
+
+/* ---------- status line ---------- */
+.statusbar { position: sticky; bottom: 0; z-index: 15; display: flex; align-items: center; gap: 14px; min-height: 36px; padding: 6px 24px;
+  background: var(--material); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border-top: 1px solid var(--separator);
+  font: var(--footnote); color: var(--label-2); }
+.statusbar .grow { flex: 1; }
+#sessionBar { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
+#progressText { font-weight: 600; color: var(--label); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.run-bar { width: 140px; flex: none; }
+#progressCount, .timer { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.timer { display: inline-flex; align-items: center; gap: 5px; }
+.timer svg { width: 14px; height: 14px; }
+#stop { height: 26px; font-size: 13px; padding: 0 10px; }
+#barNext { display: none; }
+#statusInfo { display: inline-flex; align-items: center; gap: 12px; white-space: nowrap; }
+#statusInfo > span { display: inline-flex; align-items: center; gap: 6px; }
+#statusInfo .extra:empty { display: none; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--label-4); }
+.dot.on { background: var(--green); }
+#statusInfo svg { width: 14px; height: 14px; }
+
+/* ---------- results ---------- */
+.result-card, .empty-card { background: var(--surface); border-radius: var(--r-xl); padding: 32px; box-shadow: var(--shadow-1), 0 0 0 .5px var(--separator); }
+.empty-card { text-align: center; padding: 48px 32px; }
+.empty-card .big-ic { width: 44px; height: 44px; color: var(--green); margin: 0 auto 12px; }
+.empty-card h2 { font: var(--title3); margin: 0 0 6px; }
+.empty-card p { color: var(--label-2); margin: 0 auto 20px; max-width: 40ch; }
+.res-top { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+.grade { width: 112px; height: 112px; border-radius: 28px; display: grid; place-items: center; flex: none; color: var(--c);
+  background: color-mix(in srgb, var(--c) 13%, var(--surface)); font: 700 64px/1 var(--font-rounded); }
+.stats { display: flex; gap: 32px; flex-wrap: wrap; }
+.stat { display: flex; flex-direction: column; gap: 2px; font: var(--footnote); color: var(--label-2); }
+.stat b { font: 700 28px/34px var(--font-rounded); color: var(--label); font-variant-numeric: tabular-nums; }
+.res-title { font: var(--title1); letter-spacing: -.02em; margin: 0 0 6px; }
+.res-cmp { display: flex; align-items: center; gap: 8px; margin: 20px 0 0; font: var(--callout); }
+.res-cmp svg { width: 18px; height: 18px; color: var(--accent); }
+.breakdown { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px; margin-top: 24px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font: var(--footnote); color: var(--label-2); }
+.legend .tag b { color: var(--label); font-weight: 600; margin-left: 2px; }
+.res-sec { margin-top: 28px; }
+.res-row { position: relative; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 16px; }
+.res-row + .res-row::before { content: ""; position: absolute; top: 0; left: 52px; right: 0; border-top: 1px solid var(--separator); }
+.res-row .i { font: var(--footnote); color: var(--label-3); font-variant-numeric: tabular-nums; }
+.res-row .qt { font: var(--subhead); }
+.res-row .qt small { display: block; font: var(--footnote); color: var(--label-2); }
+.res-row .rr { display: flex; align-items: center; gap: 6px; font: var(--footnote); color: var(--label-2); font-variant-numeric: tabular-nums; }
+.res-row .rr .time { width: 40px; text-align: right; }
+.badge.r { --c: var(--label-2); background: color-mix(in srgb, var(--c) 15%, transparent); color: color-mix(in srgb, var(--c) 85%, var(--label)); text-transform: capitalize; }
+.res-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 28px; }
+.res-wait { display: flex; align-items: center; gap: 10px; color: var(--label-2); }
+#result .list, #pastTests .list { background: var(--surface-2); box-shadow: none; }
+#pastTests .list { background: var(--surface); box-shadow: var(--shadow-1); }
+
+#moduleScreen { margin-top: 0; }
+.sdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--tag); margin-right: 8px; vertical-align: 2px; }
+.res-row .i svg { width: 16px; height: 16px; color: var(--label-3); }
+.ai-wait svg { width: 17px; height: 17px; color: var(--orange); flex: none; }
+.closed .chev { width: 12px; height: 12px; }
+.badge .tag { gap: 0; }
+.badge .tag::before { width: 7px; height: 7px; }
+.alert-prompt { width: min(360px, 100%); }
+.alert-prompt.wide { width: min(460px, 100%); }
+.alert-prompt .field { display: block; margin: 0 0 var(--sp4); font: var(--subhead); text-align: left; padding: 8px 10px; }
+.alert-prompt textarea.field { min-height: 96px; max-height: 260px; resize: vertical; line-height: 1.4; }
+.alert-prompt h3 + .field { margin-top: 12px; }
+
+/* ---------- narrow windows ---------- */
+@media (max-width: 1280px) {
+  body.chatting .quiz-area { grid-template-columns: minmax(0, var(--read-w)); }
+  body.quizzing.chatting .wrap { max-width: calc(var(--read-w) + 80px); }
+  .inspector { position: static; max-height: none; }
+  #chatLog { max-height: 420px; }
+}
+@media (max-width: 900px) {
+  .app { display: block; }
+  .side { position: fixed; left: 0; top: 0; bottom: 0; width: min(300px, 86vw); height: auto; transform: translateX(-104%);
+    transition: transform .3s var(--spring); box-shadow: var(--shadow-3); background: var(--material-thick); }
+  body.side-collapsed .side { display: flex; }
+  body.side-open .side { transform: none; }
+  body.side-open .side-scrim { display: block; position: fixed; inset: 0; z-index: 25; background: rgb(0 0 0 / .3); animation: fade-in .2s; }
+  .toolbar { display: flex; }
+  .main { --chrome-top: var(--toolbar-h); }
+  .wrap { padding: 28px 24px 96px; }
+}
+@media (max-width: 600px) {
+  .wrap { padding: 20px 16px 96px; }
+  .page-head { margin-bottom: 20px; }
+  .page-head h1 { font: var(--title1); }
+  .page-head p { font: var(--subhead); }
+  .qcard { padding: 20px 16px; border-radius: var(--r-lg); }
+  .q { font-size: 20px; line-height: 26px; }
+  .rate { grid-template-columns: repeat(2, 1fr); gap: 10px 8px; }
+  #reveal .key { display: none; }
+  .t-mastery .progress { display: none; }
+  details.subject > summary { padding: 10px 14px; gap: 10px; }
+  .topic { padding-left: 64px; }
+  .opt-row select.field { min-width: 0; flex: 1; }
+  .statusbar { padding: 6px 16px; gap: 10px; }
+  .run-bar { width: 64px; }
+  #statusInfo .extra { display: none; }
+  .statusbar:has(#sessionBar:not(.hidden)) #statusInfo { display: none; }
+  .result-card { padding: 20px 16px; }
+  .grade { width: 84px; height: 84px; border-radius: 22px; font-size: 48px; }
+  .res-top { gap: 20px; }
+  .stats { gap: 20px; }
+  .stat b { font-size: 22px; line-height: 28px; }
+}
+
+/* ---------- phone + touch (iPhone home-screen app) ---------- */
+/* Safe areas: viewport-fit=cover lets the page run under the notch and home bar; these keep chrome out of them. */
+.tabbar { display: none; }
+@media (max-width: 900px) {
+  .toolbar { height: calc(var(--toolbar-h) + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top);
+    padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+  .main { --chrome-top: calc(var(--toolbar-h) + env(safe-area-inset-top)); }
+  .side { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); padding-left: env(safe-area-inset-left); }
+  .wrap { padding-left: max(24px, env(safe-area-inset-left)); padding-right: max(24px, env(safe-area-inset-right)); }
+  .statusbar { padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+}
+@media (max-width: 700px) {
+  :root { --tabbar-h: calc(50px + env(safe-area-inset-bottom)); }
+  .wrap { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+  /* iOS-style tab bar for the main modes. Hidden in a run (the status line has Stop), in a lesson (it has
+     its own back button and composer) and while the keyboard is up (body.kb-open). */
+  .tabbar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); position: fixed; left: 0; right: 0; bottom: 0; z-index: 24;
+    height: var(--tabbar-h); padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background: var(--material-thick); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); border-top: 1px solid var(--separator); }
+  .tabbar > button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; height: 50px; padding: 4px 2px 0;
+    border: 0; border-radius: 0; background: none; color: var(--label-2); font: 500 10.5px/12px var(--font); -webkit-tap-highlight-color: transparent; cursor: pointer; }
+  .tabbar .ic { display: grid; place-items: center; width: 26px; height: 26px; }
+  .tabbar .ic svg { width: 24px; height: 24px; }
+  .tabbar .lbl { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tabbar > button.active, body:is([data-tab="test"], [data-tab="map"], [data-tab="offline"]) .tabbar .tb-more { color: var(--accent); }
+  body:is(.quizzing, .teach-on, .kb-open) .tabbar { display: none; }
+  body:not(.quizzing):not(.teach-on) .main { padding-bottom: var(--tabbar-h); }
+  body.kb-open .main { padding-bottom: 0; }
+  /* the status line only matters in a run (progress, Stop); elsewhere the tab bar takes the bottom */
+  body:not(.quizzing) .statusbar { display: none; }
+  /* lesson screen: its own toolbar replaces the app's */
+  body.teach-on .toolbar { display: none; }
+  body.teach-on .main { --chrome-top: 0px; }
+  /* Map: the area between the top bar and the tab bar */
+  body.mode-map #tab-map { height: calc(100vh - var(--chrome-top) - var(--tabbar-h)); height: calc(100dvh - var(--chrome-top) - var(--tabbar-h)); }
+  /* Review: the rating buttons as big thumb targets */
+  .rate button { min-height: 56px; }
+  #revealControls .btn { width: 100%; }
+  /* The main action (Show answer / Check, then Next or the rating buttons) is a bar fixed above the run's
+     status line, like an app's toolbar: a long question or explanation never needs a scroll to move on.
+     (Fixed, not sticky: sticky can't leave its section, which may start below the screen.) */
+  body.quizzing #revealControls, body.quizzing #decideBox { position: fixed; left: 0; right: 0; bottom: var(--statusbar-h, 44px); z-index: 16;
+    margin: 0; padding: 10px max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
+    background: var(--material-thick); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); box-shadow: 0 -1px 0 var(--separator); }
+  body.quizzing #decideBox .decide { min-height: 0; gap: 8px 12px; }
+  body.quizzing #decideBox .decide .dc-what { min-width: 0; }
+  body.quizzing #decideBox .dc-next { flex: 1 0 100%; min-height: 48px; }
+  body.quizzing #decideBox .rate-head { display: none; }
+  body.quizzing #decideBox .rate { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  body.quizzing #decideBox .rate button { min-height: 52px; }
+  body.quizzing #decideBox .decide:not(:empty) + .rate-head + .rate:not(.hidden) { margin-top: 8px; }
+  /* room under the card for that bar */
+  body.quizzing .quiz-area { padding-bottom: 150px; }
+  /* Multiple choice on a phone: Next lives in the run's bottom line, beside Stop */
+  body.quizzing:has(#quiz.mcq-phone.mcq-done) #barNext { display: inline-flex; margin-left: auto; min-width: 104px; height: 40px; }
+  body.quizzing:has(#quiz.mcq-phone.mcq-done) #sessionBar { flex: 1; }
+  body.quizzing #progressText { display: none; }
+  #chat:not(.chat-open) > :not(.insp-head) { display: none; }
+  #chat .insp-head { cursor: pointer; min-height: 44px; }
+  #chat .insp-head::after { content: ""; margin-left: auto; width: 8px; height: 8px; border-right: 2px solid var(--label-3); border-bottom: 2px solid var(--label-3);
+    transform: rotate(45deg); transition: transform .2s var(--ease); }
+  #chat.chat-open .insp-head::after { transform: rotate(-135deg); }
+  body.quizzing:has(#quiz.mcq-phone.mcq-done) .statusbar .grow { display: none; }
+  /* Full screen in a run: the top bar slides away and comes back when you scroll up (body.chrome-peek) */
+  body.quizzing .toolbar { position: fixed; left: 0; right: 0; top: 0; transform: translateY(-100%); transition: transform .25s var(--ease); }
+  body.quizzing.chrome-peek .toolbar { transform: none; }
+  body.quizzing .main { --chrome-top: 0px; }
+  body.quizzing .wrap { padding-top: calc(env(safe-area-inset-top) + 12px); }
+  body.quizzing::before { content: ""; position: fixed; left: 0; right: 0; top: 0; height: env(safe-area-inset-top); z-index: 19;
+    background: var(--material); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); }
+  body.quizzing #after > #past:empty { display: none; }
+  .setup-actions { position: sticky; bottom: calc(var(--tabbar-h) + 8px); z-index: 5; }
+  .side { width: min(320px, 88vw); }
+  /* toast: above the tab bar (or the run's status line) and the home bar */
+  .toast { bottom: calc(var(--tabbar-h) + 12px); }
+}
+/* Touch: no hover, so no keyboard-shortcut hints. (44pt icon buttons and taller controls: ui/base.css.) */
+@media (hover: none) and (pointer: coarse) {
+  kbd, .key, .kh, .tc-kbd, .chat-keys, .tc-foot .hint { display: none !important; }
+  .side-nav .tab { height: 44px; font-size: 17px; }
+  .side-item { padding-top: 10px; padding-bottom: 10px; }
+  /* iOS zooms the page when a field under 16px gets focus */
+  :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]), textarea, select) { font-size: max(16px, 1em); }
+  html :is(select.field, .alert-prompt .field, .multiselect-search, .tc-pop select.field, .tc-capture input.field, .tc-cap-list select.field) { font-size: 16px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar: app name, the modes (tabs), Study next, recent Teach sessions, mastery. A slide-over under 900px. -->
+  <aside class="side" id="side" aria-label="Sidebar">
+    <div class="side-head">
+      <span class="app-icon" data-icon="book" aria-hidden="true"></span>
+      <span class="brand">Learning Quiz</span>
+      <a id="home" class="icon-btn hidden" href="/" title="Back to LifeOS" aria-label="Back to LifeOS" data-icon="apps"></a>
+      <button class="icon-btn" id="settingsBtn" type="button" title="Settings" aria-label="Settings" data-icon="gear"></button>
+      <button class="icon-btn" id="sideClose" type="button" title="Hide sidebar" aria-label="Hide sidebar" data-icon="sidebar"></button>
+    </div>
+    <div class="side-scroll">
+      <nav class="side-nav tabs" aria-label="Modes">
+        <button class="tab" data-tab="home" type="button" title="What to do next: lessons, a quick review, your lists"><span class="ic" data-icon="home"></span>Home</button>
+        <button class="tab" data-tab="test" type="button" title="Timed, graded"><span class="ic" data-icon="test"></span>Test</button>
+        <button class="tab" data-tab="practice" type="button" title="A whole subject, no grade"><span class="ic" data-icon="practice"></span>Practice</button>
+        <button class="tab" data-tab="teach" type="button" title="Learn something new, step by step"><span class="ic" data-icon="teach"></span>Teach</button>
+        <button class="tab" data-tab="tolearn" type="button" title="Lists of things you want to learn, each one click from a lesson"><span class="ic" data-icon="list"></span>To Learn</button>
+        <button class="tab" data-tab="interview" type="button" title="Live mock coding interviews with an AI interviewer (computer only)"><span class="ic" data-icon="person"></span>Interview</button>
+        <button class="tab" data-tab="map" type="button" title="Which topic leads to which"><span class="ic" data-icon="map"></span>Map</button>
+        <button class="tab" data-tab="offline" type="button" title="Multiple choice with saved explanations. No AI, works with no connection"><span class="ic" data-icon="offline"></span>Offline practice</button>
+      </nav>
+      <div class="side-sec" id="sideGapsSec">
+        <div class="side-label"><span>Study next</span><span class="n" id="sideGapsN"></span></div>
+        <div id="sideGaps"><div class="side-empty">Nothing yet</div></div>
+      </div>
+      <div class="side-sec">
+        <div class="side-label"><span>Lessons</span></div>
+        <div id="sideTeach"><div class="side-empty">No lessons yet</div></div>
+      </div>
+      <div class="side-sec">
+        <div class="side-label"><span>Mastery</span></div>
+        <div id="sideMastery"></div>
+      </div>
+    </div>
+    <div class="side-foot" id="summary"><div class="side-goal hidden" id="sideGoal"></div><div id="summaryText"></div></div>
+  </aside>
+  <div class="side-scrim" id="scrim"></div>
+
+  <div class="main">
+    <header class="toolbar" id="topbar">
+      <button class="icon-btn" id="menuBtn" type="button" title="Show sidebar" aria-label="Show sidebar" data-icon="sidebar"></button>
+      <span class="where" id="where"></span>
+    </header>
+
+    <div class="wrap">
+      <header class="page-head">
+        <h1 id="pageTitle">Learning Quiz</h1>
+        <p id="pageSub"></p>
+      </header>
+
+      <div id="setup">
+        <section id="studyNext" class="group hidden"></section>
+        <section id="graderLessons" class="group hidden"></section>
+
+        <!-- Panels owned by feature modules (ui/home.js, ui/teach.js, ui/map.js). They render on the 'tab' hook. -->
+        <div id="tab-home" class="hidden"></div>
+        <div id="tab-teach" class="hidden"><p class="muted">Teach mode isn't built yet.</p></div>
+        <div id="tab-tolearn" class="hidden"><p class="muted">To Learn isn't built yet.</p></div>
+        <div id="tab-map" class="hidden"><p class="muted">The map isn't built yet.</p></div>
+        <div id="tab-offline" class="hidden"></div>
+        <div id="tab-interview" class="hidden"><p class="muted">Interviews aren't built yet.</p></div>
+
+        <div id="tab-smart">
+          <section class="group">
+            <div class="group-head"><h2>Topics</h2><button class="btn btn-plain btn-sm" id="topicsAll" type="button">Select all</button></div>
+            <div class="list topics" id="topics"></div>
+          </section>
+          <section class="group">
+            <div class="group-head"><h2>Options</h2></div>
+            <div class="list options">
+              <div class="opt-row">
+                <span class="opt-label">Questions</span>
+                <div class="segmented" id="modeSeg" role="group" aria-label="Which questions">
+                  <button type="button" data-v="smart" title="Weak and due first, then new">Smart</button>
+                  <button type="button" data-v="due" title="Only questions due for review">Due</button>
+                  <button type="button" data-v="weak" title="Only questions you find hard">Weak</button>
+                  <button type="button" data-v="new" title="Only questions you haven't seen">New</button>
+                </div>
+                <select id="mode" hidden>
+                  <option value="smart">Smart (weak first)</option>
+                  <option value="due">Due only</option>
+                  <option value="weak">Weak only</option>
+                  <option value="new">New only</option>
+                </select>
+              </div>
+              <div class="extras" id="smartExtras"></div>
+            </div>
+          </section>
+          <div class="setup-actions">
+            <span class="footnote" id="selCount"></span>
+            <button class="btn btn-primary btn-lg" id="start" type="button">Start</button>
+          </div>
+          <div id="smartMore"></div>
+        </div>
+
+        <div id="tab-subject" class="hidden">
+          <section class="group">
+            <div class="list options">
+              <div class="opt-row">
+                <span class="opt-label">Subject</span>
+                <select id="subject" class="field"></select>
+              </div>
+              <div class="opt-row" id="countWrap">
+                <span class="opt-label">Questions</span>
+                <div class="segmented" id="countSeg" role="group" aria-label="How many questions">
+                  <button type="button" data-v="5">5</button><button type="button" data-v="10">10</button><button type="button" data-v="15">15</button><button type="button" data-v="20">20</button><button type="button" data-v="all">All</button>
+                </div>
+                <select id="count" hidden>
+                  <option value="5">5</option>
+                  <option value="10" selected>10</option>
+                  <option value="15">15</option>
+                  <option value="20">20</option>
+                  <option value="all">All</option>
+                </select>
+              </div>
+              <div class="extras" id="subjectExtras"></div>
+            </div>
+            <p class="list-footer" id="subjectBlurb"></p>
+          </section>
+          <div class="setup-actions">
+            <span class="footnote" id="subjectInfo"></span>
+            <button class="btn btn-primary btn-lg" id="startSubject" type="button">Start</button>
+          </div>
+          <div id="pastTests"></div>
+        </div>
+      </div>
+
+      <div class="quiz-area">
+        <!-- The question card: one focused surface holding everything needed to answer. -->
+        <article class="qcard hidden" id="quiz">
+          <div class="meta" id="meta"></div>
+          <h2 class="q" id="question"></h2>
+          <div id="detail" class="prose"></div>
+          <div id="beforeInput"></div>   <!-- e.g. multiple-choice options (ui/mcq.js) -->
+          <div class="field-wrap"><textarea id="input" class="field" placeholder="Answer in your own words. Thinking out loud is welcome: type or dictate your reasoning, and the grader picks out your final answer"></textarea></div>
+          <div id="answerExtras"></div>  <!-- e.g. thinking field, confidence (ui/think.js), hints (ui/practice.js) -->
+          <div id="revealControls">
+            <button class="btn btn-primary btn-lg" id="reveal" type="button">Show answer <kbd class="key">⌘↩</kbd></button>
+          </div>
+
+          <div id="after" class="hidden">
+            <section class="answer" id="yoursBox">
+              <h3 class="section-label">Your answer</h3>
+              <div class="yours" id="yours"></div>
+            </section>
+            <div id="afterExtras"></div>   <!-- e.g. multiple-choice result, thinking, miss class -->
+            <section class="answer ai hidden" id="aiBox"></section>
+            <section class="answer" id="refBox">
+              <h3 class="section-label">Reference answer</h3>
+              <div id="ref" class="prose"></div>
+            </section>
+            <section class="answer" id="decideBox">
+              <div class="decide" id="decide"></div>
+              <div class="rate-head hidden" id="rateHead"><h3 class="section-label">How well did you know it?</h3><span class="footnote kh">Press 1–4</span></div>
+              <div class="rate hidden" id="rateBtns">
+                <button class="again" data-r="again" type="button">Again<small>Didn't know<span class="kh"> · 1</span></small></button>
+                <button class="hard" data-r="hard" type="button">Hard<small>Partly<span class="kh"> · 2</span></small></button>
+                <button class="good" data-r="good" type="button">Good<small>Got it<span class="kh"> · 3</span></small></button>
+                <button class="easy" data-r="easy" type="button">Easy<small>Instantly<span class="kh"> · 4</span></small></button>
+              </div>
+            </section>
+            <div class="past" id="past"></div>
+          </div>
+        </article>
+
+        <!-- Side chat about the current answer: an inspector beside the card on wide windows. -->
+        <aside class="inspector hidden locked" id="chat" aria-label="Ask about this answer">
+          <div class="insp-head"><span class="ic" data-icon="chat"></span>Ask about this answer</div>
+          <div id="chatLog"></div>
+          <div class="chips">
+            <button class="btn btn-sm btn-tinted btn-pill" type="button" data-ask="Explain this more simply, like I'm new to it.">Explain simpler</button>
+            <button class="btn btn-sm btn-tinted btn-pill" type="button" data-ask="Give me another concrete example.">Another example</button>
+            <button class="btn btn-sm btn-tinted btn-pill" type="button" data-ask="Why is this true? Walk me through the reasoning step by step.">Why?</button>
+            <button class="btn btn-sm btn-tinted btn-pill" type="button" data-ask="What's the most common mistake people make with this?">Common mistakes</button>
+            <button class="btn btn-sm btn-tinted btn-pill" type="button" id="appealChip" title="Tell the AI why you think the grade is wrong: it re-checks, and fixes the grade if you're right">Grade seems wrong?</button>
+          </div>
+          <div class="chat-input">
+            <div class="field-wrap">
+              <textarea id="chatInput" rows="1" placeholder="Ask anything about this answer"></textarea>
+              <button class="btn btn-primary" id="chatSend" type="button" title="Send (↩)" aria-label="Send" data-icon="arrow-up"></button>
+            </div>
+            <div class="chat-keys">↩ send · ⇧↩ new line</div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Full-screen area for module flows (a Teach session, the big map). See Quiz.enterScreen(). -->
+      <div id="moduleScreen" class="hidden"></div>
+
+      <div class="empty-card hidden" id="done">
+        <span class="big-ic" data-icon="check-circle"></span>
+        <h2>All caught up</h2>
+        <p>Nothing left in this mode for the topics you picked. Try another mode or more topics.</p>
+        <button class="btn" id="doneBack" type="button">Back to topics</button>
+      </div>
+      <!-- A Review run reached its size (pref quiz.reviewSize): keep going or stop. -->
+      <div class="empty-card hidden" id="reviewDone"></div>
+      <div class="hidden" id="result"></div>
+    </div>
+
+    <!-- Bottom status line: run progress, timer and Stop during a run; AI / dictation status. -->
+    <footer class="statusbar">
+      <div class="session hidden" id="sessionBar">
+        <span id="progressText"></span>
+        <div class="progress run-bar"><span id="progressBar" style="width:0%"></span></div>
+        <span id="progressCount"></span>
+        <span class="timer hidden" id="timer"></span>
+        <button class="btn btn-sm btn-destructive" id="stop" type="button">Stop</button>
+        <button class="btn btn-primary" id="barNext" type="button">Next</button>   <!-- phone multiple choice (ui/mcq.js) -->
+      </div>
+      <span class="grow"></span>
+      <span id="statusInfo"><span id="aiStatus"><span class="dot"></span>AI …</span><span class="extra" id="dictStatus"></span></span>
+    </footer>
+
+    <!-- Phone tab bar (under 700px, hidden in a run and in a lesson): the main modes; More opens the sidebar (Test, Map, lessons, Settings). -->
+    <nav class="tabbar" id="tabbar" aria-label="Modes">
+      <button class="tab" data-tab="home" type="button"><span class="ic" data-icon="home"></span><span class="lbl">Home</span></button>
+      <button class="tab" data-tab="teach" type="button"><span class="ic" data-icon="teach"></span><span class="lbl">Teach</span></button>
+      <button class="tab" data-tab="practice" type="button"><span class="ic" data-icon="practice"></span><span class="lbl">Practice</span></button>
+      <button class="tab" data-tab="tolearn" type="button"><span class="ic" data-icon="list"></span><span class="lbl">To Learn</span></button>
+      <button class="tb-more" id="tabMore" type="button" aria-label="More: Test, Map, Offline practice, lessons, Settings"><span class="ic" data-icon="ellipsis"></span><span class="lbl">More</span></button>
+    </nav>
+  </div>
+</div>
+<div class="toast hidden" id="toast" role="status"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let current = null;
+let recent = [];
+let revealed = false;
+let rating = false;       // guards against double-rating with fast key presses
+let session = null;       // test / free-practice run: { kind, subject, queue, index, results, startedAt, shownAt }
+let timerId = null;
+// Opens on Home unless the URL names a tab (links, back/forward) or a lesson.
+let tab = tabFromUrl() || (new URLSearchParams(location.search).get('lesson') ? 'teach' : 'home');
+let aiAvailable = false;  // Claude Code CLI found on the server
+let aiSession = null;     // one AI conversation per quiz run (test / practice / smart review)
+let smartRun = null;      // a Review (smart) run: { rated, base, newIds, results } for prefs quiz.reviewSize / quiz.maxNew; quick: started from Home
+
+// App preferences (ui/prefs.js, Settings). window.QuizPrefs: window.Quiz is rebuilt below.
+const pref = (k, d) => { try { const v = window.QuizPrefs && window.QuizPrefs.get(k); return v === undefined || v === null ? d : v; } catch { return d; } };
+
+const RATING_COLORS = { again: 'var(--again)', hard: 'var(--hard)', good: 'var(--good)', easy: 'var(--easy)' };
+const POINTS = { again: 0, hard: 0.5, good: 1, easy: 1 };   // must match server.js
+
+// ---------- feature-module hooks ----------
+// Modules in ui/*.js register with Quiz.on(name, fn). Hooks:
+//   showQuestion(cur)  after a question is drawn. #beforeInput, #answerExtras, #afterExtras are emptied first.
+//   beforeReveal(cur)  before "Show answer" runs. May set cur.answerOverride (text shown/graded as the answer)
+//                      or cur.skipAiGrade = true.
+//   afterReveal(cur)   after the reference answer is shown.
+//   payload(cur)       returns an object merged into `extra` sent with /api/answer and /api/ai/grade
+//                      (keys the server keeps: see EXTRA_KEYS in server.js).
+//   resultItem(cur)    returns an object merged into this question's test/practice result row.
+//   afterRate(cur, r)  after a rating is saved.
+//   tab(name)          the setup tab changed (home | smart | test | practice | teach | tolearn | map | offline | interview).
+//   runStart(kind)     a quiz run starts (smart | test | practice | plan).
+const hooks = {};
+function runHooks(name, ...args) {
+  const out = [];
+  for (const fn of hooks[name] || []) {
+    try { out.push(fn(...args)); } catch (e) { console.error(`[quiz hook ${name}]`, e); }
+  }
+  return out;
+}
+const mergeHooks = (name, ...args) => Object.assign({}, ...runHooks(name, ...args).filter((x) => x && typeof x === 'object'));
+// Line icons (ui/icons.js, loaded in <head>). The Quiz object below replaces the one icons.js made, so keep them.
+const icon = (window.Quiz && window.Quiz.icon) || (() => '');
+const iconNames = (window.Quiz && window.Quiz.iconNames) || [];
+const paintIcons = (root = document) => root.querySelectorAll('[data-icon]').forEach((el) => {
+  if (!el.firstElementChild) el.insertAdjacentHTML('afterbegin', icon(el.dataset.icon));
+});
+// Subject tints (--tint-0..7): by alphabetical position among all subjects, so the sidebar, topic list and map agree.
+// The subject list is remembered from the last load, so it's known before api/topics answers.
+let subjectOrder = [];
+try { subjectOrder = [...new Set(JSON.parse(localStorage.getItem('knownTopics') || '[]').map((k) => k.split(' / ')[0]))].sort(); } catch {}
+function subjectTint(name) {
+  let i = subjectOrder.indexOf(name);
+  if (i < 0) { i = 0; for (const ch of String(name)) i = (i * 31 + ch.charCodeAt(0)) >>> 0; }
+  return `var(--tint-${i % 8})`;
+}
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? undefined
+    : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+}
+window.Quiz = {
+  prefs: window.QuizPrefs,
+  on(name, fn) { (hooks[name] ||= []).push(fn); },
+  icon, iconNames, subjectTint: (s) => subjectTint(s),
+  $, esc: (s) => esc(s), inline: (s) => inline(s), md: (s) => md(s), mountViews: (el) => mountViews(el),
+  api, shuffle: (a) => shuffle(a), fmt: (ms) => fmt(ms), showToast: (t) => showToast(t),
+  get current() { return current; }, get session() { return session; }, get revealed() { return revealed; },
+  get aiAvailable() { return aiAvailable; }, get aiSession() { return aiSession; },
+  get tab() { return tab; },   // modules load after the first setTab(), so check this on load
+  aiRunInfo: () => aiRunInfo(), adoptSession: (d) => adoptSession(d),
+  reveal: () => reveal(), rate: (r) => rate(r), next: () => next(),
+  startPlan: (ids, label, back) => startPlan(ids, label, back),
+  // Start a Smart-review run limited to some topics ("Subject / Topic" keys).
+  startSmart: async (topicKeys) => {
+    document.querySelectorAll('#topics input.tcheck').forEach((b) => (b.checked = topicKeys.includes(b.value)));
+    document.querySelectorAll('#topics details.subject').forEach(syncSubjectBox);
+    saveTopics(); setTab('smart'); session = null; smartRun = newSmartRun();
+    await openAiSession('smart', 'mixed'); runHooks('runStart', 'smart'); next();
+  },
+  // Home's quick review: every topic, only seen questions that are due, `size` of them.
+  // Leaves the Review setup's topic picks alone.
+  startQuickReview: async (size) => {
+    setTab('smart'); session = null; smartRun = newSmartRun({ quick: true, size });
+    await openAiSession('smart', 'mixed'); runHooks('runStart', 'smart'); next();
+  },
+  loadTopics: () => loadTopics(), loadGaps: () => loadGaps(), setTab: (t) => setTab(t),
+  suggestRating(r) {
+    if (current) current.suggested = r || null;
+    document.querySelectorAll('.rate button').forEach((b) => b.classList.toggle('suggested', b.dataset.r === r));
+    renderDecide();
+  },
+  // Full-screen module flow (e.g. a Teach session): hides the setup card and quiz, shows #moduleScreen.
+  enterScreen() {
+    ['setup', 'quiz', 'done', 'reviewDone', 'result'].forEach((id) => $(id).classList.add('hidden'));
+    showChat(false);
+    $('moduleScreen').classList.remove('hidden');
+    return $('moduleScreen');
+  },
+  exitScreen() {
+    $('moduleScreen').classList.add('hidden');
+    $('moduleScreen').innerHTML = '';
+    $('setup').classList.remove('hidden');
+    loadTopics();
+  },
+};
+
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function inline(s) {
+  // Format only outside `code` spans, so snake_case names like PR_SET_CHILD_SUBREAPER stay intact.
+  return esc(s).split(/(`[^`]+`)/g).map((part) => part.startsWith('`') && part.endsWith('`') && part.length > 1
+    ? `<code>${part.slice(1, -1)}</code>`
+    : part
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+             .replace(/(^|[^\w*])\*([^*\s](?:[^*]*[^*\s])?)\*(?![\w*])/g, '$1<em>$2</em>')
+      .replace(/(^|[^\w])_([^_]+)_(?![\w])/g, '$1<em>$2</em>')
+      .replace(/\[\[([^\]]+)\]\]/g, '$1')).join('');
+}
+
+// Answer visuals: `await dv.view("Learning/_quiz/views/<name>", {...})` inside a dataviewjs block.
+// Obsidian runs it through Dataview; here we load the same file from /views/<name>.js.
+function parseView(code) {
+  const m = code.match(/dv\.view\(\s*["'`]([^"'`]+)["'`]\s*(?:,\s*([\s\S]*?))?\)\s*;?\s*$/);
+  if (!m) return null;
+  return { name: m[1].split('/').pop().replace(/\.js$/, ''), input: (m[2] || '{}').trim() };
+}
+
+const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+const viewCache = {};
+
+async function mountViews(scope) {
+  for (const box of scope.querySelectorAll('.view[data-view]')) {
+    const name = box.dataset.view;
+    try {
+      viewCache[name] ||= fetch(`views/${name}.js`).then((r) => {
+        if (!r.ok) throw new Error(`view "${name}" not found`);
+        return r.text();
+      });
+      const code = await viewCache[name];
+      const input = new Function(`return (${box.dataset.input});`)();
+      await new AsyncFunction('dv', 'input', code)({ container: box }, input);
+    } catch (e) {
+      box.innerHTML = `<div class="view-error">${icon('warning')}<span>Visual “${esc(name)}” failed: ${esc(e.message)}</span></div>`;
+    }
+  }
+}
+
+// Minimal markdown: code fences, bullet/numbered lists, paragraphs.
+function md(src) {
+  const out = [];
+  const lines = src.split('\n');
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.startsWith('```')) {
+      const lang = line.slice(3).trim();
+      const code = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith('```')) code.push(lines[i++]);
+      i++;
+      const view = lang === 'dataviewjs' && parseView(code.join('\n'));
+      if (view) out.push(`<div class="view" data-view="${esc(view.name)}" data-input="${esc(view.input)}"></div>`);
+      else out.push(`<pre><code>${esc(code.join('\n'))}</code></pre>`);
+    } else if (/^\s*[-*] /.test(line) || /^\s*\d+\. /.test(line)) {
+      // a list; lines indented 2+ spaces under an item become its nested bullet list
+      const ordered = /^\s*\d+\. /.test(line);
+      const top = ordered ? /^\d+\. / : /^[-*] /;
+      const items = [];
+      while (i < lines.length) {
+        const l = lines[i];
+        if (top.test(l)) items.push({ text: l.replace(top, ''), sub: [] });
+        else if (items.length && /^\s{2,}([-*]|\d+\.) /.test(l)) items[items.length - 1].sub.push(l.replace(/^\s*([-*]|\d+\.) /, ''));
+        else break;
+        i++;
+      }
+      const li = (it) => `<li>${inline(it.text)}${it.sub.length ? `<ul>${it.sub.map((x) => `<li>${inline(x)}</li>`).join('')}</ul>` : ''}</li>`;
+      out.push(ordered ? `<ol>${items.map(li).join('')}</ol>` : `<ul>${items.map(li).join('')}</ul>`);
+    } else if (line.trim() === '') {
+      i++;
+    } else {
+      const para = [];
+      while (i < lines.length && lines[i].trim() !== '' && !/^(```|\s*[-*] |\s*\d+\. )/.test(lines[i])) para.push(lines[i++]);
+      out.push(`<p>${inline(para.join(' '))}</p>`);
+    }
+  }
+  return out.join('');
+}
+
+async function loadTopics() {
+  let s;
+  try {
+    const r = await fetch('api/topics');
+    if (!r.ok) throw new Error(`server said ${r.status}`);
+    s = await r.json();
+  } catch (e) { console.warn('topics:', e.message); return; }   // keep what's on screen; the next call retries
+  const saved = JSON.parse(localStorage.getItem('topics') || 'null');
+  // Topics grouped by subject, each subject a collapsible block.
+  // Topics we've never seen before start ticked; the open/closed state is remembered.
+  const known = JSON.parse(localStorage.getItem('knownTopics') || '[]');
+  const open = JSON.parse(localStorage.getItem('openSubjects') || '[]');
+  const groups = {};
+  for (const t of s.topics) (groups[t.subject] ||= []).push(t);
+  subjectOrder = Object.keys(groups).sort();
+  // Secondary counts in plain words: "12 due · 3 weak · 4 of 59 seen"
+  const counts = (due, weak, seen, total) => [due ? `${due} due` : '', weak ? `<span class="warn">${weak} weak</span>` : '',
+    seen ? `${seen} of ${total} seen` : `${total} new`].filter(Boolean).join(' · ');
+  const mastery = (m) => `<span class="t-mastery"><span class="progress"><span style="width:${m}%"></span></span><span class="pct">${m}%</span></span>`;
+  $('topics').innerHTML = Object.entries(groups).map(([subject, topics]) => {
+    const sum = (f) => topics.reduce((a, t) => a + t[f], 0);
+    const total = sum('total');
+    const m = Math.round(topics.reduce((a, t) => a + t.mastery * t.total, 0) / (total || 1));
+    const rows = topics.map((t) => {
+      const key = `${t.subject} / ${t.topic}`;
+      const checked = !saved || saved.includes(key) || !known.includes(key) ? 'checked' : '';
+      return `<label class="topic">
+        <input type="checkbox" class="check tcheck" value="${esc(key)}" ${checked}>
+        <span class="t-name"><b>${esc(t.topic)}</b><small>${counts(t.due, t.weak, t.seen, t.total)}</small></span>
+        ${mastery(t.mastery)}
+      </label>`;
+    }).join('');
+    return `<details class="subject" data-subject="${esc(subject)}" style="--tag:${subjectTint(subject)}" ${open.includes(subject) ? 'open' : ''}>
+      <summary>
+        ${icon('chevron-right', 'chev')}
+        <input type="checkbox" class="check scheck" title="Select every topic in ${esc(subject)}" aria-label="Select every topic in ${esc(subject)}">
+        <span class="t-name"><b><i class="sdot"></i>${esc(subject)}</b><small>${topics.length} topic${topics.length > 1 ? 's' : ''} · ${counts(sum('due'), sum('weak'), sum('seen'), total)}</small></span>
+        ${mastery(m)}
+      </summary>
+      <div class="inner">${rows}</div>
+    </details>`;
+  }).join('') || '<p>No question files yet. Add some to Learning/&lt;Subject&gt;/Questions/.</p>';
+  localStorage.setItem('knownTopics', JSON.stringify(s.topics.map((t) => `${t.subject} / ${t.topic}`)));
+  wireSubjects();
+  $('summaryText').textContent = `${s.totalAnswers.toLocaleString()} answers so far`;
+  loadStreak();
+  updateSelCount();
+  renderSideMastery(s.topics);
+  loadGaps();
+
+  // subjects for tests / free practice
+  const bySubject = {};
+  for (const t of s.topics) {
+    bySubject[t.subject] ||= { total: 0, topics: [] };
+    bySubject[t.subject].total += t.total;
+    bySubject[t.subject].topics.push(t.topic);
+  }
+  const chosen = $('subject').value || localStorage.getItem('subject');
+  $('subject').innerHTML = Object.entries(bySubject).map(([name, info]) =>
+    `<option value="${esc(name)}">${esc(name)} · ${info.total} questions</option>`).join('');
+  if (chosen && bySubject[chosen]) $('subject').value = chosen;
+  window.subjectInfo = bySubject;
+  renderSubjectInfo();
+}
+
+function renderSubjectInfo() {
+  const info = (window.subjectInfo || {})[$('subject').value];
+  $('subjectInfo').textContent = info ? `Topics: ${info.topics.join(', ')}` : '';
+  if (tab === 'test') loadPastTests();
+  else if (tab === 'practice') loadPracticeRuns();
+  else $('pastTests').innerHTML = '';
+}
+
+const GRADE_COLORS = { A: 'var(--good)', B: 'var(--easy)', C: 'var(--hard)', D: 'var(--hard)', F: 'var(--again)' };
+async function loadPastTests() {
+  const subject = $('subject').value;
+  if (!subject) return;
+  const { tests } = await (await fetch('api/tests?subject=' + encodeURIComponent(subject))).json();
+  $('pastTests').innerHTML = `<section class="group"><div class="group-head"><h2>Past tests</h2></div>` + (tests.length
+    ? `<div class="list">${tests.slice(0, 5).map((t) => `<div class="res-row">
+        <span class="i">${icon('test')}</span>
+        <span class="qt">${new Date(t.ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}<small>${t.count} questions · ${fmt(t.durationMs)}</small></span>
+        <span class="rr"><span>${t.pct}%</span><span class="badge r" style="--c:${GRADE_COLORS[t.grade] || 'var(--label-2)'}">${esc(t.grade)}</span></span>
+      </div>`).join('')}</div>`
+    : '<p class="list-footer">No tests in this subject yet.</p>') + '</section>';
+}
+
+function fmt(ms) {
+  const sec = Math.max(0, Math.round(ms / 1000));
+  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// The tab lives in the URL (?tab=home|review|test|practice|teach|tolearn|map), so the browser's back and
+// forward buttons move between tabs and a tab can be bookmarked. "smart" shows as "review".
+function tabFromUrl() {
+  const v = new URLSearchParams(location.search).get('tab');
+  const t = v === 'review' ? 'smart' : v;
+  return ['home', 'smart', 'test', 'practice', 'teach', 'tolearn', 'map', 'offline', 'interview'].includes(t) ? t : null;
+}
+let tabHistory = 'replaceState';   // the first tab only fixes the URL; later ones add history entries
+function syncTabUrl(t) {
+  if (tabFromUrl() === t) return;
+  const p = new URLSearchParams(location.search);
+  p.set('tab', t === 'smart' ? 'review' : t);
+  if (t !== 'teach') p.delete('lesson');
+  if (t !== 'interview') p.delete('session');
+  history[tabHistory]({ tab: t }, '', `${location.pathname}?${p}`);
+}
+window.addEventListener('popstate', () => {
+  const t = tabFromUrl() || 'home';
+  if (t === tab) return;   // e.g. lesson ↔ lesson list: ui/teach.js handles it
+  const hadResult = !$('result').classList.contains('hidden');
+  // A running test asks first; until he confirms, put the URL back on the current tab.
+  if (!leaveStage(() => { setTab(t); })) { const keep = tabHistory; tabHistory = 'pushState'; syncTabUrl(tab); tabHistory = keep; return; }
+  if (hadResult) $('result').classList.add('hidden');
+  setTab(t);
+  window.scrollTo(0, 0);
+});
+
+function setTab(t) {
+  tab = t;
+  document.body.dataset.tab = t;   // phone tab bar: More is lit for the modes it holds (test, map)
+  syncTabUrl(t);
+  // Review setup has no tab of its own any more: it's opened from Home, so Home stays lit.
+  document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === (t === 'smart' ? 'home' : t)));
+  $('tab-home').classList.toggle('hidden', t !== 'home');
+  $('tab-smart').classList.toggle('hidden', t !== 'smart');
+  $('tab-subject').classList.toggle('hidden', t !== 'test' && t !== 'practice');
+  $('tab-teach').classList.toggle('hidden', t !== 'teach');
+  $('tab-map').classList.toggle('hidden', t !== 'map');
+  $('tab-tolearn').classList.toggle('hidden', t !== 'tolearn');
+  $('tab-offline').classList.toggle('hidden', t !== 'offline');
+  $('tab-interview').classList.toggle('hidden', t !== 'interview');
+  renderHead(t);
+  runHooks('tab', t);
+  if (t === 'home' || t === 'teach' || t === 'map' || t === 'tolearn' || t === 'offline' || t === 'interview') return;
+  $('countWrap').classList.toggle('hidden', t !== 'test');
+  $('startSubject').textContent = t === 'test' ? 'Start test' : 'Start practice';
+  $('subjectBlurb').textContent = t === 'test'
+    ? 'A written answer is worth 2 points, a multiple-choice pick 1. Written answers get the AI score (or Again 0, Hard ½, Good/Easy full); a pick is right or wrong.'
+    : 'Flagged gaps come first. Stop whenever you like; you can pick up where you left off.';
+  renderSubjectInfo();
+}
+
+// Segmented controls that stand in for the (hidden) <select>s the rest of the code reads.
+function segmented(segId, selectId, key) {
+  const seg = $(segId), sel = $(selectId);
+  try { const v = key && localStorage.getItem(key); if (v && [...sel.options].some((o) => o.value === v)) sel.value = v; } catch {}
+  const paint = () => seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === sel.value));
+  seg.querySelectorAll('button').forEach((b) => (b.onclick = () => {
+    sel.value = b.dataset.v;
+    try { if (key) localStorage.setItem(key, sel.value); } catch {}
+    paint();
+  }));
+  paint();
+}
+segmented('modeSeg', 'mode', 'mode');
+segmented('countSeg', 'count', 'count');
+
+// "18 of 20 topics" under the topic list; the header button selects all or none.
+function updateSelCount() {
+  const all = document.querySelectorAll('#topics input.tcheck'), on = selectedTopics().length;
+  $('selCount').textContent = all.length ? (on ? `${on} of ${all.length} topics selected` : 'Select at least one topic') : '';
+  $('start').disabled = !on;
+  $('topicsAll').textContent = on === all.length ? 'Select none' : 'Select all';
+}
+$('topicsAll').onclick = () => {
+  const boxes = [...document.querySelectorAll('#topics input.tcheck')];
+  const to = !boxes.every((b) => b.checked);
+  boxes.forEach((b) => (b.checked = to));
+  document.querySelectorAll('#topics details.subject').forEach(syncSubjectBox);
+  saveTopics();
+};
+
+function selectedTopics() {
+  return [...document.querySelectorAll('#topics input.tcheck:checked')].map((x) => x.value);
+}
+
+function saveTopics() {
+  localStorage.setItem('topics', JSON.stringify(selectedTopics()));
+  updateSelCount();
+}
+
+// Subject checkbox: ticked = all topics, half (indeterminate) = some, empty = none. Clicking it selects/clears all.
+function syncSubjectBox(det) {
+  const boxes = [...det.querySelectorAll('input.tcheck')];
+  const on = boxes.filter((b) => b.checked).length;
+  const sbox = det.querySelector('input.scheck');
+  sbox.checked = on === boxes.length;
+  sbox.indeterminate = on > 0 && on < boxes.length;
+}
+
+function wireSubjects() {
+  document.querySelectorAll('#topics details.subject').forEach((det) => {
+    syncSubjectBox(det);
+    const sbox = det.querySelector('input.scheck');
+    sbox.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wasOpen = det.open;                       // clicking inside <summary> would also toggle the block
+      det.querySelectorAll('input.tcheck').forEach((b) => (b.checked = sbox.checked));
+      syncSubjectBox(det);
+      saveTopics();
+      setTimeout(() => (det.open = wasOpen), 0);
+    });
+    det.querySelectorAll('input.tcheck').forEach((b) => b.addEventListener('change', () => { syncSubjectBox(det); saveTopics(); }));
+    det.addEventListener('toggle', () => {
+      const openNow = [...document.querySelectorAll('#topics details.subject')].filter((d) => d.open).map((d) => d.dataset.subject);
+      localStorage.setItem('openSubjects', JSON.stringify(openNow));
+    });
+  });
+}
+
+async function next() {
+  if (session) return showQuestion(session.queue[session.index]);
+  const run = smartRun || (smartRun = newSmartRun());
+  // A quick review (from Home) asks every topic; a normal one the ticked topics.
+  const topics = run.quick ? [] : selectedTopics();
+  if (!run.quick) localStorage.setItem('topics', JSON.stringify(topics));
+  // Review size reached (pref quiz.reviewSize; 0 = no limit): a small "Session done" card instead.
+  const size = run.size || Number(pref('quiz.reviewSize', 0)) || 0;
+  if (size > 0 && run.rated - run.base >= size) return showReviewDone();
+  const mode = run.quick ? 'due' : $('mode').value;
+  const params = new URLSearchParams({ topics: topics.join('|'), mode, exclude: recent.join(',') });
+  // At most quiz.maxNew never-seen questions per run (-1 = no limit). "New only" mode is exempt: new is what it's for.
+  // A quick review asks no new ones at all: only what's due again.
+  const maxNew = Number(pref('quiz.maxNew', -1));
+  if (run.quick || (maxNew >= 0 && mode !== 'new' && run.newIds.size >= maxNew)) params.set('noNew', '1');
+  const data = await (await fetch('api/next?' + params)).json();
+  if (data.done) {
+    $('quiz').classList.add('hidden'); showChat(false);
+    $('done').querySelector('p').textContent = run.quick
+      ? 'Nothing else is due right now. New questions wait in Review, under Customize.'
+      : 'Nothing left in this mode for the topics you picked. Try another mode or more topics.';
+    $('doneBack').textContent = run.quick ? 'Back to Home' : 'Back to topics';
+    $('done').classList.remove('hidden');
+    return;
+  }
+  if (!data.stats) run.newIds.add(data.question.id);
+  showQuestion(data);
+}
+
+const newSmartRun = (o = {}) => ({ rated: 0, base: 0, newIds: new Set(), results: [], quick: !!o.quick, size: o.size || 0 });
+
+// "Session done · N reviewed": the run's size was reached. Keep going = another N.
+function showReviewDone() {
+  const run = smartRun;
+  const n = run.rated - run.base;
+  const part = run.results.slice(run.base);
+  $('quiz').classList.add('hidden'); showChat(false);
+  $('setup').classList.add('hidden');
+  const box = $('reviewDone');
+  box.innerHTML = `<span class="big-ic" data-icon="check-circle"></span>
+    <h2>Session done · ${n} reviewed</h2>
+    <p>${run.rated > n ? `${run.rated} in this run so far. ` : ''}Take a break, or keep going for another ${run.size || Number(pref('quiz.reviewSize', 0)) || n}.</p>
+    ${part.length ? `<div style="max-width:360px;margin:0 auto 20px;text-align:left">${breakdownHtml(part)}</div>` : ''}
+    <div class="res-actions" style="justify-content:center"><button class="btn btn-primary" id="rdMore" type="button">Keep going</button><button class="btn" id="rdBack" type="button">${run.quick ? 'Back to Home' : 'Back to topics'}</button></div>`;
+  paintIcons(box);
+  box.classList.remove('hidden');
+  $('rdMore').onclick = () => { run.base = run.rated; box.classList.add('hidden'); next(); };
+  $('rdMore').focus();
+  $('rdBack').onclick = () => {
+    box.classList.add('hidden'); $('setup').classList.remove('hidden');
+    smartRun = null; closeAiSession(); loadTopics();
+    if (run.quick) navTo('home');
+  };
+}
+
+function showQuestion(data) {
+  $('done').classList.add('hidden');
+  $('reviewDone').classList.add('hidden');
+  $('result').classList.add('hidden');
+  current = data;
+  rating = false;
+  // The same object comes back on "Continue where I stopped": forget the last showing's reveal state.
+  delete data.answerOverride; delete data.skipAiGrade; delete data.aiFeedbackOnly; delete data.pickScore; data.ai = null; data.aiPromise = null;
+  $('aiBox').classList.add('hidden');
+  if (session) {
+    session.shownAt = Date.now();
+    const n = session.queue.length, i = session.index + 1;
+    const kind = session.kind === 'test' ? 'Test' : session.kind === 'plan' ? '' : 'Practice';
+    $('progressText').textContent = kind ? `${kind} · ${session.subject}` : session.subject;
+    $('progressCount').textContent = `${i} of ${n}`;
+    $('progressBar').style.width = `${((i - 1) / n) * 100}%`;
+  }
+  revealed = false;
+  const q = data.question;
+  const st = data.stats;
+  const focusBadge = {
+    gap: q.parent
+      ? `<span class="badge accent" title="A smaller question written from a gap in one of your answers">${icon('target')}Building block</span>`
+      : `<span class="badge accent" title="Builds a concept you said confused you">${icon('book')}For a gap you flagged</span>`,
+    parked: `<span class="badge" title="This one has a gap open; it comes up less until you've practised the smaller questions">${icon('flag')}Gap still open</span>`,
+    retry: `<span class="badge green" title="You closed the gap behind this question: try it again">${icon('refresh')}Back after studying</span>`,
+  }[data.focus] || '';
+  $('meta').innerHTML = [
+    `<span class="badge" style="--tag:${subjectTint(q.subject)}"><span class="tag"></span>${esc(q.topic)}</span>`,
+    st ? `<span class="badge" title="Leitner box: higher means you know it better">Box ${st.box} of 5</span><span class="badge">${st.correct} of ${st.attempts} right</span>` : '<span class="badge accent">New</span>',
+    focusBadge,
+  ].join('');
+  $('question').textContent = q.question;
+  $('detail').innerHTML = q.detail ? md(q.detail) : '';
+  mountViews($('detail'));
+  $('input').value = '';
+  $('after').classList.add('hidden');
+  $('reveal').disabled = false;
+  $('quiz').classList.remove('hidden');
+  data.chat = [];
+  showChat(true);
+  ['beforeInput', 'answerExtras', 'afterExtras'].forEach((id) => ($(id).innerHTML = ''));
+  $('quiz').classList.remove('mcq-on', 'mcq-done', 'mcq-more', 'mcq-phone', 'mcq-picked', 'mcq-thinking');   // ui/mcq.js sets these
+  $('reveal').firstChild.textContent = 'Show answer ';
+  $('input').classList.remove('hidden');
+  Quiz.suggestRating(null);
+  runHooks('showQuestion', data);
+  if (!$('input').classList.contains('hidden')) $('input').focus();
+}
+
+// ---------- AI grading ----------
+
+async function openAiSession(kind, subject) {
+  closeAiSession();
+  if (!aiAvailable) return;
+  try {
+    const r = await fetch('api/ai/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, subject }) });
+    aiSession = r.ok ? (await r.json()).session : null;
+  } catch { aiSession = null; }
+}
+
+// What the server needs to open a replacement session if ours is gone (e.g. after a server restart).
+function aiRunInfo() {
+  return { session: aiSession, kind: session ? (session.kind === 'plan' ? 'practice' : session.kind) : 'smart', subject: session ? session.subject : 'mixed' };
+}
+function adoptSession(data) {
+  if (data && data.session) aiSession = data.session;
+}
+
+function closeAiSession() {
+  if (aiSession) navigator.sendBeacon('api/ai/close', JSON.stringify({ session: aiSession }));
+  aiSession = null;
+}
+
+function scoreColor(n) {
+  return n >= 90 ? 'var(--good)' : n >= 70 ? 'var(--easy)' : n >= 50 ? 'var(--hard)' : 'var(--again)';
+}
+
+// Score as a ring: the arc and number in the score's colour.
+function scoreRing(n) {
+  const C = 2 * Math.PI * 25;
+  return `<span class="ring" style="--c:${scoreColor(n)}"><svg viewBox="0 0 60 60" aria-hidden="true"><circle class="track" cx="30" cy="30" r="25"/>
+    <circle class="val" cx="30" cy="30" r="25" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - Math.max(0, Math.min(100, n)) / 100)).toFixed(1)}"/></svg><b>${n}</b></span>`;
+}
+const scoreWord = (n) => (n >= 90 ? 'Excellent' : n >= 70 ? 'Mostly there' : n >= 50 ? 'Partly right' : 'Not yet');
+
+// After reveal the rating normally comes from the grade (Claude's suggestion, or the multiple-choice
+// pick): one "Next" accepts it. The four buttons appear only to override it, or when there is no grade
+// (Claude unavailable, or grading failed).
+const RATING_LABEL = { again: 'Again', hard: 'Hard', good: 'Good', easy: 'Easy' };
+const ratingFromScore = (n) => (n >= 90 ? 'easy' : n >= 70 ? 'good' : n >= 45 ? 'hard' : 'again');
+function decidedRating(cur) {
+  if (!cur) return null;
+  if (cur.ai && cur.ai.status === 'pending' && !cur.aiFeedbackOnly) return null;
+  if (cur.suggested) return cur.suggested;
+  if (cur.aiFeedbackOnly) return null;          // multiple choice: the pick rates it, not the AI
+  if (cur.ai && cur.ai.status === 'done') return cur.ai.fb.suggestedRating || ratingFromScore(cur.ai.fb.score);
+  return null;
+}
+function renderDecide() {
+  const box = $('decide');
+  if (!box) return;
+  const cur = current;
+  const pending = !!(cur && cur.ai && cur.ai.status === 'pending' && !cur.aiFeedbackOnly);
+  const r = decidedRating(cur);
+  const manual = !!(cur && cur.rateManually) || (!pending && !r);
+  $('rateHead').classList.toggle('hidden', !manual);
+  $('rateBtns').classList.toggle('hidden', !manual);
+  if (!revealed || !cur) { box.innerHTML = ''; return; }
+  if (pending) {
+    box.innerHTML = `<div class="dc-what"><span class="activity"></span>The AI is grading; it will rate this for you.</div>
+      ${manual ? '' : '<button type="button" class="dc-change" id="dcManual">Rate it myself</button>'}`;
+  } else if (r) {
+    const by = cur.ai && cur.ai.status === 'done' && !cur.aiFeedbackOnly ? 'The AI’s rating' : 'From your pick';
+    box.innerHTML = `<div class="dc-what"><span class="dc-pill" style="--c:${RATING_COLORS[r]}">${RATING_LABEL[r]}</span><span class="dc-why">${by}</span>
+      ${manual ? '' : '<button type="button" class="dc-change" id="dcManual">Change</button>'}</div>
+      <button type="button" class="btn btn-primary dc-next" id="dcNext">Next<kbd>↵</kbd></button>`;
+    $('dcNext').onclick = () => rate(r);
+  } else { box.innerHTML = ''; return; }
+  const m = $('dcManual');
+  if (m) m.onclick = () => { cur.rateManually = true; renderDecide(); };
+}
+
+function renderAi(cur) {
+  if (cur === current) setTimeout(renderDecide);
+  if (cur !== current) return;                 // the user already moved to another question
+  const box = $('aiBox'), st = cur.ai;
+  if (!st) { box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  const head = `<h3 class="section-label">${icon('sparkles')}${cur.aiFeedbackOnly ? 'AI feedback on your thinking' : 'AI feedback'}</h3>`;
+  if (st.status === 'pending') {
+    box.innerHTML = `${head}<div class="ai-wait"><span class="spinner"></span>The AI is reading your answer… ${Math.round((Date.now() - st.started) / 1000)}s</div>`;
+    return;
+  }
+  if (st.status === 'error') {
+    box.innerHTML = `${head}<div class="ai-wait">${icon('warning')}Couldn't grade this one: ${esc(st.error)}</div><button class="btn btn-sm" id="aiRetry" type="button">${icon('refresh')}Try again</button>`;
+    $('aiRetry').onclick = () => startGrading(cur);
+    return;
+  }
+  const f = st.fb;
+  const list = (items, cls, ic, fmtItem) => (items.length
+    ? `<ul class="ai-list">${items.map((x) => `<li class="${cls}">${icon(ic)}<div>${fmtItem(x)}</div></li>`).join('')}</ul>`
+    : '<p class="ai-empty">Nothing here.</p>');
+  box.innerHTML = `${head}
+    ${cur.aiFeedbackOnly
+      ? `<p class="verdict" style="margin:0 0 12px">${inline(f.verdict || '')}</p>`
+      : `<div class="ai-top" style="--c:${scoreColor(f.score)}">${scoreRing(f.score)}
+      <div class="verdict"><span class="sc">${scoreWord(f.score)}</span>${inline(f.verdict || '')}</div></div>`}
+    ${f.regraded ? `<p class="ai-regraded">${icon('check-circle')}Re-graded after your appeal${f.ruling ? `: ${inline(f.ruling)}` : ''}</p>` : ''}
+    ${f.gradedAnswer ? `<p class="ai-graded"><span>Graded as</span>${inline(f.gradedAnswer)}</p>` : ''}
+    <div class="ai-group"><h4>What you got right</h4>${list(f.correct, 'good', 'check-circle', (c) => inline(c))}</div>
+    <div class="ai-group"><h4>Missing</h4>${list(f.missing, 'miss', 'minus-circle', (m) => `${m.importance === 'key' ? '<span class="key">Key</span>' : ''}${inline(m.point)}`)}</div>
+    ${f.misconceptions.length ? `<div class="ai-group"><h4>What went wrong, and probably why</h4>${list(f.misconceptions, 'bad', 'x-circle', (m) => `${inline(m.what)}<div class="why">${inline(m.why)}</div>`)}</div>` : ''}
+    ${f.goodToKnow ? `<div class="ai-group"><h4>Good to know</h4><p class="ai-tip">${icon('hint')}<span>${inline(f.goodToKnow)}</span></p></div>` : ''}
+    ${f.explanation ? `<div class="ai-group"><h4>For you</h4><div class="prose">${md(f.explanation)}</div></div>` : ''}
+    ${(f.blocks || []).length ? `<div class="ai-group blocks"><h4>Smaller questions first</h4>
+      <p class="blocks-sub">${f.buildingBlocks && f.buildingBlocks.concept ? `To close the gap in <b>${esc(f.buildingBlocks.concept)}</b>: ` : ''}added to your notes. You'll get these before this question comes back.</p>
+      <ul class="block-list">${f.blocks.map((b) => `<li data-block="${esc(b.id)}"><span class="ic">${icon('target')}</span><span class="grow">${inline(b.question)}</span>
+        <button type="button" class="btn btn-plain btn-sm" data-block-remove="${esc(b.id)}" title="Remove from your notes">Remove</button></li>`).join('')}</ul></div>` : ''}`;
+  box.querySelectorAll('[data-block-remove]').forEach((b) => (b.onclick = async () => {
+    b.disabled = true;
+    try {
+      await Quiz.api('api/blocks/remove', { id: b.dataset.blockRemove });
+      f.blocks = f.blocks.filter((x) => x.id !== b.dataset.blockRemove);
+      renderAi(cur);
+      loadGaps(); loadTopics();
+    } catch (e) { b.disabled = false; showToast(`Couldn't remove it: ${e.message}`); }
+  }));
+}
+
+async function startGrading(cur) {
+  if (!aiAvailable) return;
+  cur.ai = { status: 'pending', started: Date.now() };
+  renderAi(cur);
+  const tick = setInterval(() => (cur.ai.status === 'pending' ? renderAi(cur) : clearInterval(tick)), 1000);
+  cur.aiPromise = (async () => {
+    try {
+      const r = await fetch('api/ai/grade', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...aiRunInfo(), id: cur.question.id, answer: cur.answerText, extra: mergeHooks('payload', cur) }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || r.statusText);
+      adoptSession(data);
+      cur.ai = { status: 'done', fb: data };
+      return data.score;
+    } catch (e) {
+      cur.ai = { status: 'error', error: e.message };
+      return null;
+    } finally {
+      clearInterval(tick);
+      renderAi(cur);
+    }
+  })();
+}
+
+function reveal() {
+  if (!current || revealed) return;
+  revealed = true;
+  runHooks('beforeReveal', current);
+  current.answerText = current.answerOverride ?? $('input').value.trim();
+  $('yours').textContent = current.answerText || 'No answer';
+  current.ai = null;
+  renderAi(current);
+  if (aiAvailable && !current.skipAiGrade) startGrading(current);
+  $('ref').innerHTML = md(current.question.answer || '_No reference answer yet._');
+  mountViews($('ref'));
+  $('past').innerHTML = current.past.length
+    ? '<h3 class="section-label">Your previous answers</h3>' + current.past.map((p) =>
+        `<div class="item"><span class="when">${new Date(p.ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · rated <span class="badge r" style="--c:${RATING_COLORS[p.rating] || 'var(--label-2)'}">${esc(p.rating)}</span></span><div class="yours">${esc(p.answer || '(no answer)')}</div></div>`).join('')
+    : '';
+  $('after').classList.remove('hidden');
+  renderChat(current);
+  $('reveal').disabled = true;
+  runHooks('afterReveal', current);
+  renderDecide();
+}
+
+async function rate(r) {
+  if (!revealed || rating) return;
+  rating = true;
+  const q = current.question;
+  const answer = current.answerText ?? $('input').value.trim();
+  // every answer also feeds spaced repetition, in all modes
+  try {
+    const res = await fetch('api/answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: q.id, rating: r, answer, question: q.question, topic: q.topic, subject: q.subject,
+        aiScore: current.aiFeedbackOnly ? current.pickScore : current.ai && current.ai.status === 'done' ? current.ai.fb.score : undefined,
+        extra: mergeHooks('payload', current) }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `server said ${res.status}`);
+  } catch (e) {
+    // Not saved: let the learner rate again instead of leaving the buttons dead.
+    rating = false;
+    showToast(`Couldn't save your rating (${e.message}). Check the connection and rate again.`);
+    return;
+  }
+  runHooks('afterRate', current, r);
+  loadTopics();
+  if (session) {
+    const item = { id: q.id, question: q.question, topic: q.topic, rating: r, ms: Date.now() - session.shownAt,
+      aiPromise: current.aiPromise || null, ...mergeHooks('resultItem', current) };
+    session.results.push(item);
+    session.index++;
+    const s = session;
+    saveRun(s);
+    if (item.aiPromise && savesRun(s)) item.aiPromise.then((sc) => { if (typeof sc === 'number') { item.aiScore = sc; saveRun(s); } });
+    if (session.index >= session.queue.length) return finishSession(false);
+    return showQuestion(session.queue[session.index]);
+  }
+  recent = [q.id, ...recent].slice(0, 3);
+  if (smartRun) { smartRun.rated++; smartRun.results.push({ rating: r }); }
+  next();
+}
+
+// ---------- tests & free practice ----------
+
+async function startSubjectSession() {
+  const subject = $('subject').value;
+  if (!subject) return;
+  localStorage.setItem('subject', subject);
+  const { questions } = await (await fetch('api/questions?subject=' + encodeURIComponent(subject))).json();
+  if (!questions.length) return;
+  let queue = shuffle(questions);
+  if (tab === 'practice') {
+    // Gaps you flagged steer practice: study-these questions first, flagged ones last.
+    const rank = { retry: 0, gap: 0, parked: 2 };
+    queue.sort((a, b) => (rank[a.focus] ?? 1) - (rank[b.focus] ?? 1));
+  }
+  if (tab === 'test') {
+    const c = $('count').value;
+    queue = queue.slice(0, c === 'all' ? queue.length : Math.min(Number(c), queue.length));
+  }
+  await openAiSession(tab, subject);
+  session = { kind: tab, subject, queue, index: 0, results: [], startedAt: Date.now(), shownAt: Date.now() };
+  saveRun(session);
+  runHooks('runStart', tab);
+  $('setup').classList.add('hidden');
+  $('sessionBar').classList.remove('hidden');
+  $('stop').textContent = tab === 'test' ? 'Quit test' : 'Stop';
+  // Pref quiz.timer off hides the clock; the test's duration is still recorded.
+  $('timer').classList.toggle('hidden', tab !== 'test' || !pref('quiz.timer', true));
+  if (tab === 'test') {
+    clearInterval(timerId);
+    const tick = () => ($('timer').innerHTML = `${icon('clock')}${fmt(Date.now() - session.startedAt)}`);
+    tick();
+    timerId = setInterval(tick, 1000);
+  }
+  showQuestion(queue[0]);
+}
+
+// ---------- saved practice runs (practice.js) ----------
+// Every practice run is saved on the server after each answer until it's finished or discarded,
+// so stopping, leaving the page or starting another practice never loses it.
+
+const savesRun = (s) => !!s && (s.kind === 'practice' || s.kind === 'plan');
+function saveRun(s) {
+  if (!savesRun(s)) return;
+  s.runId ||= Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  api('api/practice/runs/save', {
+    id: s.runId, kind: s.kind, subject: s.subject, back: s.back || null, ids: s.queue.map((item) => item.question.id), index: s.index,
+    results: s.results.map(({ aiPromise, ...r }) => r),
+    elapsedMs: (s.elapsedBefore || 0) + Date.now() - s.startedAt, startedAt: s.firstStartedAt || s.startedAt,
+  }).catch((e) => console.warn('[practice] could not save the run:', e.message));
+  s.firstStartedAt ||= s.startedAt;
+}
+
+const shortDate = (ts) => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+async function loadPracticeRuns() {
+  let runs = [];
+  try { ({ runs } = await api('api/practice/runs')); } catch { /* list stays empty */ }
+  if (tab !== 'practice') return;
+  $('pastTests').innerHTML = runs.length ? `<section class="group"><div class="group-head"><h2>Unfinished practice</h2></div>
+    <div class="list">${runs.map((r) => `<div class="res-row">
+      <span class="i">${icon('practice')}</span>
+      <span class="qt">${esc(r.subject)}<small>${r.index} of ${r.ids.length} answered · ${shortDate(r.updatedAt)}</small></span>
+      <span class="rr"><button class="btn btn-sm btn-tinted" type="button" data-run-go="${esc(r.id)}">${icon('play')}Continue</button>
+        <button class="btn btn-sm btn-plain" type="button" data-run-del="${esc(r.id)}">Discard</button></span>
+    </div>`).join('')}</div>
+    <p class="list-footer">Saved after every answer. Starting a new practice keeps these.</p></section>` : '';
+  $('pastTests').querySelectorAll('[data-run-go]').forEach((b) => (b.onclick = () => {
+    b.disabled = true;
+    resumeRun(runs.find((r) => r.id === b.dataset.runGo)).catch((e) => { b.disabled = false; showToast(`Couldn't continue it: ${e.message}`); });
+  }));
+  $('pastTests').querySelectorAll('[data-run-del]').forEach((b) => (b.onclick = async () => {
+    const r = runs.find((x) => x.id === b.dataset.runDel);
+    if (!(await confirmAlert({ title: 'Discard this practice?', text: `${r.subject}: ${r.index} of ${r.ids.length} answered. Your answers stay in your progress; only the unfinished run goes.`, ok: 'Discard', destructive: true }))) return;
+    await api('api/practice/runs/delete', { id: r.id }).catch(() => {});
+    loadPracticeRuns();
+  }));
+}
+
+async function resumeRun(run) {
+  // A practice run covers a whole subject (too many ids for a URL), a plan only a few.
+  const { questions } = await api(run.kind === 'plan'
+    ? 'api/questions?ids=' + encodeURIComponent(run.ids.join(','))
+    : 'api/questions?subject=' + encodeURIComponent(run.subject));
+  const byId = new Map(questions.map((item) => [item.question.id, item]));
+  const queue = run.ids.map((id) => byId.get(id)).filter(Boolean);   // questions deleted since are skipped
+  const nextId = run.ids.slice(run.index).find((id) => byId.has(id));
+  if (!nextId) {
+    await api('api/practice/runs/delete', { id: run.id }).catch(() => {});
+    showToast('Nothing left in that practice: its remaining questions no longer exist.');
+    return loadPracticeRuns();
+  }
+  const index = queue.findIndex((item) => item.question.id === nextId);
+  $('result').classList.add('hidden');
+  await openAiSession('practice', run.subject);
+  session = { kind: run.kind, subject: run.subject, back: run.back, queue, index, results: run.results || [], runId: run.id,
+    elapsedBefore: run.elapsedMs || 0, firstStartedAt: run.startedAt, startedAt: Date.now(), shownAt: Date.now() };
+  runHooks('runStart', run.kind);
+  $('setup').classList.add('hidden');
+  $('sessionBar').classList.remove('hidden');
+  $('stop').textContent = 'Stop';
+  $('timer').classList.add('hidden');
+  showQuestion(queue[index]);
+}
+
+function endSessionUI() {
+  clearInterval(timerId);
+  $('sessionBar').classList.add('hidden');
+  $('quiz').classList.add('hidden'); showChat(false);
+  $('setup').classList.remove('hidden');
+}
+
+const RATING_ORDER = ['again', 'hard', 'good', 'easy'];
+function breakdownHtml(results) {
+  const counts = { again: 0, hard: 0, good: 0, easy: 0 };
+  results.forEach((r) => counts[r.rating]++);
+  const total = results.length || 1;
+  return `<div class="breakdown">${RATING_ORDER.map((k) => counts[k]
+      ? `<div title="${k}: ${counts[k]}" style="width:${(counts[k] / total) * 100}%;background:${RATING_COLORS[k]}"></div>` : '').join('')}</div>
+    <div class="legend">${RATING_ORDER.map((k) => `<span class="tag" style="--tag:${RATING_COLORS[k]}">${k[0].toUpperCase() + k.slice(1)} <b>${counts[k]}</b></span>`).join('')}</div>`;
+}
+
+function resultsTable(results) {
+  if (!results.length) return '';
+  return `<div class="res-sec"><h3 class="section-label">All questions</h3><div class="list">` +
+    results.map((r, i) => `<div class="res-row"><span class="i">${i + 1}</span>
+      <span class="qt">${esc(r.question)}<small>${esc(r.topic)}</small></span>
+      <span class="rr">${typeof r.aiScore === 'number' ? `<span class="badge r" style="--c:${scoreColor(r.aiScore)}" title="AI score">${r.aiScore}</span>` : ''}
+        <span class="badge r" style="--c:${RATING_COLORS[r.rating]}" title="How it felt">${esc(r.rating)}</span><span class="time">${fmt(r.ms)}</span></span></div>`).join('') +
+    '</div></div>';
+}
+
+async function finishSession(stoppedEarly) {
+  const s = session;
+  session = null;
+  const durationMs = (s.elapsedBefore || 0) + Date.now() - s.startedAt;
+  endSessionUI();
+  const res = $('result');
+  if (s.results.some((r) => r.aiPromise)) {
+    res.innerHTML = '<div class="result-card res-wait"><span class="spinner"></span>Waiting for the AI to finish grading your last answers…</div>';
+    res.classList.remove('hidden');
+  }
+  for (const r of s.results) {
+    const score = r.aiPromise ? await r.aiPromise : null;
+    if (typeof score === 'number') r.aiScore = score;
+    delete r.aiPromise;
+  }
+  closeAiSession();
+  saveRun(s);   // paused: kept for later; finished: removed
+  const review = s.results.filter((r) => r.rating === 'again' || r.rating === 'hard' || (typeof r.aiScore === 'number' && r.aiScore < 70));
+  const reviewHtml = review.length
+    ? `<div class="res-sec"><h3 class="section-label">Worth another look (${review.length})</h3><div class="list">${review.map((r) =>
+        `<div class="res-row"><span class="i">${icon('review')}</span><span class="qt">${esc(r.question)}<small>${esc(r.topic)}</small></span><span></span></div>`).join('')}</div></div>`
+    : '';
+
+  if (s.kind === 'test' && !stoppedEarly) {
+    // Saving can fail on a bad connection: keep the results on screen and offer Try again until it's saved.
+    let out;
+    for (;;) {
+      try {
+        const r = await fetch('api/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subject: s.subject, durationMs, items: s.results }),
+        });
+        out = await r.json();
+        if (!r.ok) throw new Error(out.error || `server said ${r.status}`);
+        break;
+      } catch (e) {
+        res.innerHTML = `<div class="result-card res-wait">Couldn't save your test (${esc(e.message)}).
+          <button class="btn btn-primary" id="testRetry">Try again</button></div>`;
+        res.classList.remove('hidden');
+        await new Promise((ok) => { $('testRetry').onclick = ok; });
+        res.innerHTML = '<div class="result-card res-wait"><span class="spinner"></span>Saving your test…</div>';
+      }
+    }
+    const t = out.test, best = out.previousBest;
+    const cmp = !best ? [icon('flag'), 'Your first test in this subject.']
+      : t.pct > best.pct ? [icon('sparkles'), `New best. Your previous best was ${best.pct}% (${best.grade}).`]
+      : t.pct === best.pct ? [icon('target'), `You tied your best score of ${best.pct}%.`]
+      : [icon('chart'), `Your best in ${esc(s.subject)} is ${best.pct}% (${best.grade}) in ${fmt(best.durationMs)}.`];
+    res.innerHTML = `<div class="result-card">
+      <div class="res-top">
+        <div class="grade" style="--c:${GRADE_COLORS[t.grade] || 'var(--label)'}">${esc(t.grade)}</div>
+        <div>
+          <h2 class="res-title">${esc(s.subject)} test</h2>
+          <div class="stats">
+            <div class="stat"><b>${t.pct}%</b>Score</div>
+            <div class="stat"><b>${t.points}/${t.maxPoints ?? t.count}</b>${t.gradedBy === 'ai' ? 'Points, graded by the AI' : t.gradedBy === 'mixed' ? 'Points, AI + you' : 'Points, self-rated'}</div>
+            <div class="stat"><b>${fmt(t.durationMs)}</b>About ${fmt(t.durationMs / t.count)} each</div>
+          </div>
+        </div>
+      </div>
+      <p class="res-cmp">${cmp[0]}<span>${cmp[1]}</span></p>
+      ${breakdownHtml(s.results)}
+      ${reviewHtml}
+      ${resultsTable(s.results)}
+      <div class="res-actions"><button class="btn btn-primary btn-lg" id="again" type="button">New test</button><button class="btn btn-lg" id="back" type="button">Done</button></div>
+    </div>`;
+    $('again').onclick = () => { res.classList.add('hidden'); setTab('test'); startSubjectSession(); };
+  } else {
+    const title = s.kind === 'test' ? 'Test stopped'
+      : s.kind === 'plan' ? (s.index >= s.queue.length ? 'Set finished' : 'Set paused') : s.index >= s.queue.length ? 'Practice finished' : 'Practice paused';
+    const sc = s.results.filter((r) => typeof r.aiScore === 'number').map((r) => r.aiScore);
+    const avg = sc.length ? Math.round(sc.reduce((a, b) => a + b, 0) / sc.length) : null;
+    res.innerHTML = `<div class="result-card">
+      <h2 class="res-title">${title}</h2>
+      <p class="secondary" style="margin:0">${esc(s.subject)}${s.kind === 'test' ? ' · not graded' : ''}</p>
+      <div class="stats" style="margin-top:20px">
+        <div class="stat"><b>${s.results.length}/${s.queue.length}</b>Answered</div>
+        ${avg !== null ? `<div class="stat"><b>${avg}</b>Average AI score</div>` : ''}
+        <div class="stat"><b>${fmt(durationMs)}</b>Time</div>
+      </div>
+      ${s.results.length ? breakdownHtml(s.results) : ''}
+      ${reviewHtml}
+      ${resultsTable(s.results)}
+      <div class="res-actions">${(s.kind === 'practice' || s.kind === 'plan') && s.index < s.queue.length
+        ? `<button class="btn btn-primary btn-lg" id="resume" type="button">${icon('play')}Continue where I stopped</button>` : ''}<button class="btn btn-lg" id="back" type="button">Done</button>${s.back
+        ? `<a class="btn btn-lg btn-plain" href="${esc(s.back.href)}">${icon('chevron-left')}${s.back.label ? `Back to ${esc(s.back.label)}` : 'Back'}</a>` : ''}</div>
+    </div>`;
+    const resume = document.getElementById('resume');
+    if (resume) resume.onclick = async () => {
+      await openAiSession('practice', s.subject);
+      $('stop').textContent = 'Stop';
+      session = { ...s, elapsedBefore: durationMs, startedAt: Date.now() };
+      res.classList.add('hidden');
+      $('setup').classList.add('hidden');
+      $('sessionBar').classList.remove('hidden');
+      showQuestion(session.queue[session.index]);
+    };
+  }
+  $('back').onclick = () => { res.classList.add('hidden'); loadTopics(); if (tab === 'practice') loadPracticeRuns(); };
+  res.classList.remove('hidden');
+  loadTopics();
+}
+
+$('start').onclick = async () => { session = null; smartRun = newSmartRun(); await openAiSession('smart', 'mixed'); runHooks('runStart', 'smart'); next(); };
+window.addEventListener('pagehide', closeAiSession);
+$('startSubject').onclick = startSubjectSession;
+$('subject').onchange = () => { localStorage.setItem('subject', $('subject').value); renderSubjectInfo(); };
+document.querySelectorAll('.tab').forEach((b) => (b.onclick = () => navTo(b.dataset.tab)));
+// Alert (Apple style): a centred confirmation for anything costly. Resolves true when confirmed.
+// Modules use it as Quiz.confirm({ title, text, ok, cancel, destructive }).
+function confirmAlert({ title, text = '', ok = 'OK', cancel = 'Cancel', destructive = false } = {}) {
+  return new Promise((resolve) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'scrim';
+    wrap.innerHTML = `<div class="alert" role="alertdialog" aria-modal="true"><h3></h3><p></p>
+      <div class="actions"><button class="btn" type="button" data-a="0"></button><button class="btn ${destructive ? 'btn-danger' : 'btn-primary'}" type="button" data-a="1"></button></div></div>`;
+    wrap.querySelector('h3').textContent = title;
+    wrap.querySelector('p').textContent = text;
+    wrap.querySelector('[data-a="0"]').textContent = cancel;
+    wrap.querySelector('[data-a="1"]').textContent = ok;
+    const done = (v) => { wrap.remove(); window.removeEventListener('keydown', onKey, true); resolve(v); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
+      else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); done(true); }
+      else e.stopPropagation();   // no rating / option keys behind the alert
+    };
+    window.addEventListener('keydown', onKey, true);
+    wrap.onclick = (e) => { if (e.target === wrap) done(false); };
+    wrap.querySelectorAll('[data-a]').forEach((b) => (b.onclick = () => done(b.dataset.a === '1')));
+    document.body.appendChild(wrap);
+    wrap.querySelector('[data-a="1"]').focus();
+  });
+}
+Quiz.confirm = confirmAlert;
+// Text prompt in the same alert style, in place of the browser's prompt(). Resolves the text, or null on Cancel.
+// Modules use it as Quiz.promptText({ title, text, value, ok, cancel, placeholder, multiline, allowEmpty, maxlength }).
+// Enter saves (Shift+Enter is a new line when multiline), Esc cancels.
+function promptText({ title, text = '', value = '', ok = 'Save', cancel = 'Cancel', placeholder = '', multiline = false, allowEmpty = false, maxlength = 0 } = {}) {
+  return new Promise((resolve) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'scrim';
+    wrap.innerHTML = `<form class="alert alert-prompt${multiline ? ' wide' : ''}" role="dialog" aria-modal="true"><h3></h3><p></p>
+      ${multiline ? '<textarea class="field" rows="4"></textarea>' : '<input class="field" type="text" autocomplete="off">'}
+      <div class="actions"><button class="btn" type="button" data-a="0"></button><button class="btn btn-primary" type="submit" data-a="1"></button></div></form>`;
+    const form = wrap.firstElementChild;
+    const f = form.querySelector('.field');
+    const save = form.querySelector('[data-a="1"]');
+    wrap.querySelector('h3').textContent = title;
+    if (text) wrap.querySelector('p').textContent = text; else wrap.querySelector('p').remove();
+    wrap.querySelector('[data-a="0"]').textContent = cancel;
+    save.textContent = ok;
+    f.value = value;
+    f.placeholder = placeholder;
+    f.setAttribute('aria-label', title);
+    if (maxlength) f.maxLength = maxlength;
+    const sync = () => { save.disabled = !allowEmpty && !f.value.trim(); };
+    f.addEventListener('input', sync);
+    sync();
+    const done = (v) => { wrap.remove(); window.removeEventListener('keydown', onKey, true); resolve(v); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(null); }
+      else if (e.key === 'Enter' && !(multiline && e.shiftKey) && !e.isComposing) { e.preventDefault(); e.stopPropagation(); if (!save.disabled) done(f.value); }
+      else e.stopPropagation();   // typing reaches the field, not the app's shortcuts
+    };
+    window.addEventListener('keydown', onKey, true);
+    form.onsubmit = (e) => { e.preventDefault(); if (!save.disabled) done(f.value); };
+    wrap.onclick = (e) => { if (e.target === wrap) done(null); };
+    wrap.querySelector('[data-a="0"]').onclick = () => done(null);
+    document.body.appendChild(wrap);
+    f.focus();
+    if (multiline) { f.style.height = Math.min(f.scrollHeight + 2, 260) + 'px'; f.setSelectionRange(f.value.length, f.value.length); } else f.select();
+  });
+}
+Quiz.promptText = promptText;
+
+// Stop the run. A test asks first (it won't be graded). Resolves false when the learner chose to stay.
+async function stopRun() {
+  if (!session) return true;
+  if (session.kind === 'test' && !(await confirmAlert({ title: 'Quit this test?', text: 'Your answers so far are saved, but the test won’t be graded.', ok: 'Quit test', cancel: 'Keep going', destructive: true }))) return false;
+  if (session) finishSession(true);
+  return true;
+}
+$('stop').onclick = () => stopRun();
+$('doneBack').onclick = () => {
+  $('done').classList.add('hidden'); $('setup').classList.remove('hidden'); loadTopics();
+  if (smartRun && smartRun.quick) { smartRun = null; navTo('home'); }
+};
+$('reveal').onclick = reveal;
+document.querySelectorAll('.rate button').forEach((b) => (b.onclick = () => rate(b.dataset.r)));
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); reveal(); return; }
+  if (revealed && !['TEXTAREA', 'INPUT', 'SELECT'].includes(document.activeElement.tagName) && !document.activeElement.isContentEditable) {
+    const r = !e.metaKey && !e.ctrlKey && !e.altKey && RATING_ORDER.find((k) => keyMatches(e, rateKey(k)));
+    if (r) { e.preventDefault(); rate(r); }
+    else if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey && !['BUTTON', 'A'].includes(document.activeElement.tagName)) {
+      const d = decidedRating(current);
+      if (d) { e.preventDefault(); rate(d); }
+    }
+  }
+});
+// Rating keys (prefs keys.again … keys.easy, default 1–4): matching, and the hints on the buttons.
+const RATE_HINT = { again: 'Didn’t know', hard: 'Partly', good: 'Got it', easy: 'Instantly' };
+const rateKey = (k) => String(pref(`keys.${k}`, String(RATING_ORDER.indexOf(k) + 1)));
+function keyMatches(e, k) {
+  if (k === 'Space') return e.code === 'Space';
+  if (k === 'Enter' || k.startsWith('Arrow')) return e.key === k;
+  return e.key.length === 1 && e.key.toLowerCase() === k.toLowerCase();
+}
+const keyLabel = (k) => ({ Space: 'Space', Enter: '↩', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→' }[k] || k.toUpperCase());
+function renderRateKeys() {
+  const keys = RATING_ORDER.map(rateKey);
+  document.querySelectorAll('#rateBtns button[data-r]').forEach((b) => {
+    const small = b.querySelector('small');
+    if (small) small.innerHTML = `${esc(RATE_HINT[b.dataset.r])}<span class="kh"> · ${esc(keyLabel(rateKey(b.dataset.r)))}</span>`;   // .kh: hidden on touch
+  });
+  const hint = $('rateHead').querySelector('.footnote');
+  if (hint) hint.textContent = keys.join('') === '1234' ? 'Press 1–4' : `Press ${keys.map(keyLabel).join(' · ')}`;
+}
+renderRateKeys();
+// Settings changed: rating keys, the test clock, the daily goal.
+window.addEventListener('quiz:prefs', (e) => {
+  const changed = (e.detail && e.detail.changed) || [];
+  if (changed.some((k) => k.startsWith('keys.'))) renderRateKeys();
+  if (changed.includes('quiz.timer') && session && session.kind === 'test') $('timer').classList.toggle('hidden', !pref('quiz.timer', true));
+  if (changed.includes('quiz.dailyGoal')) loadStreak();
+});
+if (window.QuizPrefs && window.QuizPrefs.ready) window.QuizPrefs.ready.then(renderRateKeys).catch(() => {});
+
+// Daily goal in the sidebar footer: "12 / 20 today · 4-day streak" (server: api/streak). Hidden when off.
+async function loadStreak() {
+  const box = $('sideGoal');
+  if (!box) return;
+  let d;
+  try { d = await api('api/streak?tz=' + encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone || '')); } catch { return; }
+  box.classList.toggle('hidden', !d.goal);
+  if (!d.goal) { box.innerHTML = ''; return; }
+  box.classList.toggle('met', d.met);
+  const pct = Math.min(100, Math.round((d.today / d.goal) * 100));
+  box.title = d.met ? `Today's goal of ${d.goal} is done` : `${d.goal - d.today} more to reach today's goal`;
+  box.innerHTML = `<div class="g-line"><span><b>${d.today}</b> / ${d.goal} today</span>${d.streak ? `<span class="g-streak">${d.streak}-day streak</span>` : ''}</div>
+    <div class="progress" role="progressbar" aria-label="Today's goal" aria-valuemin="0" aria-valuemax="${d.goal}" aria-valuenow="${Math.min(d.today, d.goal)}"><span style="width:${Math.max(pct, d.today ? 2 : 0)}%"></span></div>`;
+}
+
+// After revealing, move focus off the textarea so number keys rate instead of typing.
+$('reveal').addEventListener('click', () => $('input').blur());
+document.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') $('input').blur(); });
+
+// Inside LifeOS (served under /quiz/): show the link back to the dashboard.
+if (location.pathname.startsWith('/quiz')) $('home').classList.remove('hidden');
+const aiStatusReady = fetch('api/ai/status').then((r) => r.json()).then((d) => {
+  aiAvailable = d.available;
+  const who = d.name || 'AI';
+  $('aiStatus').innerHTML = d.available ? `<span class="dot on"></span>${who} ready` : `<span class="dot"></span>${who} unavailable`;
+  $('aiStatus').title = d.available ? `Grading runs on ${d.model || who} (Settings → AI)` : (d.why || '');
+  if (!$('quiz').classList.contains('hidden')) showChat(true);   // a question was already on screen
+}).catch(() => { $('aiStatus').innerHTML = '<span class="dot"></span>AI unavailable'; });
+
+// ---------- app shell: sidebar, page title, status line ----------
+// Layout only: the tabs (in the sidebar) still drive the modes through setTab() and the 'tab' hook.
+const PAGE = {
+  home: ['Home', ''],   // ui/home.js writes a greeting here
+  smart: ['Review setup', 'Pick topics and which questions come first. The quick review on Home asks everything that is due.'],
+  test: ['Test', 'Random questions from one subject, timed, with a grade at the end.'],
+  practice: ['Practice', 'Every question in one subject, shuffled. No grade, no timer.'],
+  teach: ['Teach', 'Learn something new, one step at a time.'],
+  tolearn: ['To Learn', 'Lists of things you want to learn. Each item is one lesson away.'],
+  map: ['Map', 'Which topic leads to which, coloured by how well you know it.'],
+  offline: ['Offline practice', 'Multiple choice with saved explanations. No AI, and it works with no connection.'],
+  interview: ['Interview', 'Live mock coding interviews in Python, NVIDIA’s most asked LeetCode problems.'],
+};
+function renderHead(t) {
+  const [title, sub] = PAGE[t] || PAGE.home;
+  $('pageTitle').textContent = title;
+  $('pageSub').textContent = sub;
+  $('where').textContent = title;
+  document.body.dataset.tab = t;
+  syncStage();
+}
+
+// The page head and setup step aside while a question or a module screen has the stage.
+// body.mode-map: the Map tab's setup panel is showing, so #tab-map takes the whole content area.
+function syncStage() {
+  const quizzing = !$('quiz').classList.contains('hidden');
+  const setupOff = quizzing || $('setup').classList.contains('hidden') || !$('result').classList.contains('hidden');
+  document.body.classList.toggle('quizzing', quizzing);
+  document.body.classList.toggle('setup-off', setupOff);
+  document.body.classList.toggle('mode-map', tab === 'map' && !setupOff);
+}
+for (const id of ['quiz', 'setup', 'result']) new MutationObserver(syncStage).observe($(id), { attributes: true, attributeFilter: ['class'] });
+
+// Sidebar: a toggle hides it on wide windows (remembered); under 900px it's a slide-over behind the menu button.
+const narrow = window.matchMedia('(max-width: 900px)');
+const closeSide = () => document.body.classList.remove('side-open');
+function setCollapsed(on) {
+  document.body.classList.toggle('side-collapsed', on);
+  try { localStorage.setItem('sideCollapsed', on ? '1' : '0'); } catch {}
+}
+try { if (localStorage.getItem('sideCollapsed') === '1') document.body.classList.add('side-collapsed'); } catch {}
+$('menuBtn').onclick = () => (narrow.matches ? document.body.classList.add('side-open') : setCollapsed(false));
+$('sideClose').onclick = () => (narrow.matches ? closeSide() : setCollapsed(true));
+$('scrim').onclick = closeSide;
+$('tabMore').onclick = () => document.body.classList.add('side-open');
+
+// On-screen keyboard (phones): body.kb-open while a text field has focus (the tab bar steps aside), and
+// --kb = the height the keyboard covers, from visualViewport (iOS Safari doesn't resize the layout for the
+// keyboard), so sticky composers can sit above it.
+(() => {
+  if (!matchMedia('(pointer: coarse)').matches) return;
+  const isText = (el) => el && (el.tagName === 'TEXTAREA' || el.isContentEditable || (el.tagName === 'INPUT' && !/^(checkbox|radio|range|color|button|submit|file)$/.test(el.type)));
+  const vv = window.visualViewport;
+  const paint = () => {
+    const kb = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0;
+    document.documentElement.style.setProperty('--kb', (document.body.classList.contains('kb-open') && kb > 60 ? kb : 0) + 'px');
+  };
+  document.addEventListener('focusin', (e) => { document.body.classList.toggle('kb-open', isText(e.target)); paint(); });
+  document.addEventListener('focusout', () => setTimeout(() => { document.body.classList.toggle('kb-open', isText(document.activeElement)); paint(); }, 50));
+  if (vv) { vv.addEventListener('resize', paint); vv.addEventListener('scroll', paint); }
+})();
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeSide();
+  // ⌃⌘S toggles the sidebar, as in macOS apps
+  if (e.key.toLowerCase() === 's' && e.metaKey && e.ctrlKey) { e.preventDefault(); narrow.matches ? document.body.classList.toggle('side-open') : setCollapsed(!document.body.classList.contains('side-collapsed')); }
+});
+
+// Get back to the setup screen from wherever we are: a Teach session / module screen closes,
+// a run stops, a Smart-review question is put away. A test asks first: then this returns false and
+// `retry` runs once the learner confirms.
+function leaveStage(retry) {
+  closeSide();
+  if (document.body.classList.contains('teach-on') && $('tcBack')) $('tcBack').click();
+  else if (!$('moduleScreen').classList.contains('hidden')) Quiz.exitScreen();
+  if (!$('quiz').classList.contains('hidden')) {
+    if (session && session.kind === 'test') { stopRun().then((ok) => ok && retry && retry()); return false; }
+    if (session) finishSession(true);
+    else { $('quiz').classList.add('hidden'); showChat(false); }
+  }
+  $('done').classList.add('hidden');
+  $('reviewDone').classList.add('hidden');
+  $('setup').classList.remove('hidden');
+  return true;
+}
+function navTo(t) {
+  const hadResult = !$('result').classList.contains('hidden');   // an older summary goes away; one this stop makes stays
+  if (!leaveStage(() => navTo(t))) return;
+  if (hadResult) $('result').classList.add('hidden');
+  setTab(t);
+  window.scrollTo(0, 0);
+}
+
+function renderSideMastery(topics) {
+  const by = {};
+  for (const t of topics) { const b = (by[t.subject] ||= { n: 0, m: 0 }); b.n += t.total; b.m += t.mastery * t.total; }
+  $('sideMastery').innerHTML = Object.entries(by).map(([subject, b]) => {
+    const m = Math.round(b.m / (b.n || 1));
+    return `<div class="side-mastery" style="--tag:${subjectTint(subject)}" title="${esc(subject)}: ${m}% mastered">
+      <span class="tag"><span>${esc(subject)}</span></span><span class="p">${m}%</span>
+      <div class="progress"><span style="width:${Math.max(m, 1)}%"></span></div></div>`;
+  }).join('');
+}
+
+// Compact Study-next list; a click opens the full list on the Review tab.
+function renderSideGaps(open) {
+  $('sideGapsN').textContent = open.length || '';
+  $('sideGaps').innerHTML = open.length
+    ? open.slice(0, 5).map((g) => `<button class="side-item" type="button" title="${esc(g.texts[g.texts.length - 1].text)}">
+        <span class="t">${esc(g.analysis?.concept || g.texts[g.texts.length - 1].text)}</span>
+        <span class="m">${esc(g.subject)}${g.active ? '' : ' · queued'}</span></button>`).join('') +
+      (open.length > 5 ? `<div class="side-empty">${open.length - 5} more</div>` : '')
+    : '<div class="side-empty">Nothing yet</div>';
+  $('sideGaps').querySelectorAll('.side-item').forEach((b) => (b.onclick = () => {
+    navTo('smart');
+    $('studyNext').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+}
+
+// Recent Teach sessions, shown as "Lessons" (ui/teach.js exposes Quiz.teach.open).
+const ago = (t) => {
+  const s = (Date.now() - new Date(t)) / 1000;
+  return s < 90 ? 'just now' : s < 5400 ? `${Math.round(s / 60)} min ago` : s < 129600 ? `${Math.round(s / 3600)} h ago` : `${Math.round(s / 86400)} d ago`;
+};
+// Settings → Data can delete lessons: refresh the sidebar list.
+window.addEventListener('quiz:lessons-changed', () => loadSideTeach());
+async function loadSideTeach() {
+  let list;
+  try { list = (await api('api/teach/sessions')).sessions || []; } catch { return; }
+  const phase = { probe: 'Getting started', plan: 'Planning', teach: 'In progress', done: 'Finished' };
+  $('sideTeach').innerHTML = list.length
+    ? list.slice(0, 5).map((t) => `<button class="side-item" type="button" data-side-teach="${esc(t.id)}">
+        <span class="t">${esc(t.goal)}</span><span class="m">${esc(phase[t.phase] || t.phase || '')}${t.busy ? ' · working' : ''} · ${ago(t.updated)}</span></button>`).join('')
+    : '<div class="side-empty">No lessons yet</div>';
+  $('sideTeach').querySelectorAll('[data-side-teach]').forEach((b) => (b.onclick = () => {
+    const go = () => { setTab('teach'); Quiz.teach.open(b.dataset.sideTeach); };
+    if (!Quiz.teach || !leaveStage(go)) return;
+    go();
+  }));
+}
+Quiz.on('tab', loadSideTeach);
+paintIcons();
+setTab(tab);
+tabHistory = 'pushState';
+loadTopics();
+
+// A question set picked by another app: /quiz/?ids=a,b,c&label=...&back=/nvidia/ starts it right away.
+async function startPlanFromUrl() {
+  const p = new URLSearchParams(location.search);
+  // A lesson asked for by another app: /quiz/?teach=<goal>&subject=<folder>&note=<note title>.
+  // Resumes the latest lesson with the same goal, otherwise starts a new one.
+  const teach = p.get('teach');
+  if (teach) {
+    history.replaceState(null, '', location.pathname);
+    try {
+      const { sessions } = await (await fetch('api/teach/sessions')).json();
+      const old = sessions.find((s) => s.goal === teach);
+      if (old && window.Quiz.teach) { setTab('teach'); window.Quiz.teach.open(old.id); return; }
+    } catch {}
+    window.dispatchEvent(new CustomEvent('quiz:teach', { detail: { goal: teach, subject: p.get('subject') || null, noteTitle: p.get('note') || null } }));
+    return;
+  }
+  // A hands-on lab asked for by another app: /quiz/?lab=<task text>&subject=<folder> (ui/teach.js).
+  const labTask = p.get('lab');
+  if (labTask) {
+    history.replaceState(null, '', location.pathname);
+    window.dispatchEvent(new CustomEvent('quiz:lab', { detail: { task: labTask, subject: p.get('subject') || null } }));
+    return;
+  }
+  const ids = p.get('ids');
+  if (!ids) return;
+  history.replaceState(null, '', location.pathname); // a refresh shouldn't restart the set
+  // Same-site paths only ("/nvidia/"), never "//other-site" or a full URL. backLabel names it on the button.
+  const b = p.get('back') || '';
+  const back = /^\/(?!\/)/.test(b) && !b.includes('\\') ? { href: b, label: (p.get('backLabel') || '').slice(0, 40) || (b.startsWith('/nvidia') ? 'Goal to NVIDIA' : '') } : null;
+  startPlan(ids.split(','), p.get('label') || 'Picked for you', back);
+}
+
+// Untimed, ungraded run over exactly these questions, in this order.
+async function startPlan(ids, label, back = null) {
+  const { questions } = await (await fetch('api/questions?ids=' + encodeURIComponent(ids.join(',')))).json();
+  if (!questions.length) return;
+  $('result').classList.add('hidden');
+  await openAiSession('practice', label);
+  session = { kind: 'plan', subject: label, back, queue: questions, index: 0, results: [], startedAt: Date.now(), shownAt: Date.now() };
+  saveRun(session);
+  runHooks('runStart', 'plan');
+  $('setup').classList.add('hidden');
+  $('sessionBar').classList.remove('hidden');
+  $('stop').textContent = 'Stop';
+  $('timer').classList.add('hidden');
+  showQuestion(questions[0]);
+}
+// Wait for the feature modules (ui/*.js, loaded at the end of the page) and the AI status, so the
+// first question of a ?ids= set gets its thinking field, options and hint button like every other.
+window.addEventListener('load', () => aiStatusReady.finally(startPlanFromUrl));
+
+// ---------- side chat about the current answer ----------
+// Uses the run's Claude session, so it already knows your answer, its grade and the study note.
+
+function showChat(on) {
+  const show = on && aiAvailable;
+  $('chat').classList.toggle('hidden', !show);
+  document.body.classList.toggle('chatting', show);
+  if (show) renderChat(current);
+}
+
+// An upheld appeal: the grade card updates in place, and so does the suggested rating.
+function applyRegrade(cur, r) {
+  if (!cur.ai || cur.ai.status !== 'done') return;
+  const fb = cur.ai.fb;
+  for (const k of ['score', 'verdict', 'correct', 'missing', 'misconceptions', 'explanation', 'suggestedRating', 'goodToKnow', 'missClass', 'gradedAt', 'ruling']) if (r[k] !== undefined) fb[k] = r[k];
+  for (const k of ['correct', 'missing', 'misconceptions']) if (!Array.isArray(fb[k])) fb[k] = [];
+  fb.regraded = true;
+  // Smaller questions written because of the old, wrong grade: take them back out of the notes.
+  if (fb.score >= 70 && (fb.blocks || []).length) {
+    const ids = fb.blocks.map((b) => b.id);
+    fb.blocks = [];
+    Promise.all(ids.map((id) => Quiz.api('api/blocks/remove', { id }).catch(() => {}))).then(() => { loadGaps(); loadTopics(); });
+  }
+  renderAi(cur);
+  if (cur === current && !rating && r.suggestedRating && !cur.aiFeedbackOnly) Quiz.suggestRating(r.suggestedRating);
+}
+
+function regradeNote(r, i) {
+  const from = typeof r.previousScore === 'number' ? `${r.previousScore} → ` : '';
+  let h = `<div class="regrade"><div class="rg-head">${icon('check-circle')}<span>Grade updated: <b>${from}${r.score}</b></span></div>`;
+  if (r.lesson) h += `<div class="rg-row">${icon('sparkles')}<span>New grading rule for every question: “${esc(r.lesson.text)}”</span><button type="button" class="btn btn-plain btn-sm" data-lesson-undo="${esc(r.lesson.id)}" data-i="${i}">Undo</button></div>`;
+  else if (r.lessonUndone) h += `<div class="rg-row muted">${icon('minus-circle')}<span>Rule removed.</span></div>`;
+  if (r.referenceFix && !r.refSkipped) {
+    h += r.refApplied
+      ? `<div class="rg-row">${icon('check')}<span>Reference answer updated in your notes.</span></div>`
+      : `<div class="rg-fix"><div class="rg-row">${icon('pencil')}<span>Suggested fix to the reference answer: ${esc(r.referenceFix.why || '')}</span></div>
+          <div class="rg-ans prose">${md(r.referenceFix.answer)}</div>
+          <div class="rg-btns"><button type="button" class="btn btn-sm btn-primary" data-ref-apply="${i}">Update my notes</button><button type="button" class="btn btn-sm btn-plain" data-ref-skip="${i}">Keep as is</button></div></div>`;
+  }
+  return h + '</div>';
+}
+
+function renderChat(cur) {
+  if (!cur || cur !== current) return;
+  $('chat').classList.toggle('locked', !revealed);
+  const log = $('chatLog');
+  log.innerHTML = !revealed
+    ? '<p>Answer first, then show the answer to ask the AI about it.</p>'
+    : cur.chat.length
+      ? cur.chat.map((m, i) => m.role === 'me' ? `<div class="msg me">${esc(m.text)}</div>`
+          : m.pending ? '<div class="msg ai wait"><span class="spinner"></span>Thinking…</div>'
+          : m.error ? `<div class="msg ai err">${icon('warning')}<span>${esc(m.text)}</span></div>`
+          : `<div class="msg ai">${md(m.text)}${m.regrade ? regradeNote(m.regrade, i) : ''}
+              <div class="msg-actions">${m.gapped
+                ? `<span class="done">${icon('check')}Added to Study next</span>`
+                : `<button class="btn btn-plain" type="button" data-chat-gap="${i}" title="Still fuzzy? Save this as a gap: related questions come up more and it shows in Study next with what to read">${icon('flag')}Still fuzzy? Add to Study next</button>`}</div>
+            </div>`).join('')
+      : '<p>Something not clicking? Ask about any part of the answer, or pick a suggestion.</p>';
+  log.querySelectorAll('[data-chat-gap]').forEach((b) => (b.onclick = () => chatToGap(cur, Number(b.dataset.chatGap))));
+  log.querySelectorAll('[data-lesson-undo]').forEach((b) => (b.onclick = async () => {
+    const m = cur.chat[Number(b.dataset.i)];
+    await Quiz.api('api/grader/lessons/remove', { id: b.dataset.lessonUndo }).catch(() => {});
+    m.regrade.lesson = null; m.regrade.lessonUndone = true; renderChat(cur); loadLessons();
+  }));
+  log.querySelectorAll('[data-ref-apply]').forEach((b) => (b.onclick = async () => {
+    const m = cur.chat[Number(b.dataset.refApply)];
+    b.disabled = true;
+    try {
+      await Quiz.api('api/question/answer', { id: cur.question.id, answer: m.regrade.referenceFix.answer });
+      m.regrade.refApplied = true;
+      cur.question.answer = m.regrade.referenceFix.answer;
+      $('ref').innerHTML = md(cur.question.answer); mountViews($('ref'));
+      renderChat(cur);
+    } catch (e) { b.disabled = false; showToast(`Couldn't update the note: ${e.message}`); }
+  }));
+  log.querySelectorAll('[data-ref-skip]').forEach((b) => (b.onclick = () => { cur.chat[Number(b.dataset.refSkip)].regrade.refSkipped = true; renderChat(cur); }));
+  log.scrollTop = log.scrollHeight;
+}
+
+// Turn one chat exchange (your question + Claude's reply) into a "what confused me" gap.
+async function chatToGap(cur, i) {
+  const reply = cur.chat[i], asked = cur.chat[i - 1];
+  if (!reply || !asked || reply.gapped) return;
+  reply.gapped = true;
+  renderChat(cur);
+  const ok = await saveGap(cur.question, asked.text, null, cur.answerText, { reply: reply.text });
+  if (!ok) { reply.gapped = false; renderChat(cur); }
+}
+
+async function sendChat(text) {
+  const cur = current;
+  text = (text || '').trim();
+  if (!cur || !revealed || !text || cur.chatBusy) return;
+  cur.chatBusy = true;
+  $('chatInput').value = ''; $('chatInput').style.height = '';
+  cur.chat.push({ role: 'me', text });
+  const reply = { role: 'ai', pending: true };
+  cur.chat.push(reply);
+  renderChat(cur);
+  const post = () => fetch('api/ai/chat', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...aiRunInfo(), id: cur.question.id, message: text, answer: cur.answerText,
+      grade: cur.ai && cur.ai.status === 'done' ? cur.ai.fb : null }),
+  });
+  try {
+    const r = await post();
+    const data = await r.json();
+    if (r.status === 404) throw new Error('The quiz server is running older code without chat. Restart it (systemctl --user restart learning-quiz) and try again.');
+    if (!r.ok) throw new Error(data.error || r.statusText);
+    adoptSession(data);
+    Object.assign(reply, { pending: false, text: data.text, regrade: data.regrade || null });
+    if (data.regrade) applyRegrade(cur, data.regrade);
+  } catch (e) {
+    Object.assign(reply, { pending: false, error: true, text: e.message });
+  }
+  cur.chatBusy = false;
+  renderChat(cur);
+}
+
+// Fields on the question card grow with their text instead of showing a resize handle.
+const autoGrow = (t) => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 2 + 'px'; };
+// ---------- updates ----------
+// A home-screen app on a phone can stay open for days on old code. When the server's code fingerprint
+// changes (a deploy), reload: at once if nothing is in progress, else at the next quiet moment.
+{
+  const loaded = (document.querySelector('meta[name=app-version]') || {}).content || '';
+  const busy = () => document.body.classList.contains('quizzing') || document.body.classList.contains('offline-run') || document.body.classList.contains('teach-on');
+  async function checkVersion() {
+    let v = null;
+    try { const r = await fetch('api/health', { cache: 'no-store' }); if (r.ok) v = (await r.json()).version || null; } catch {}
+    if (!v || v === loaded || busy()) return;
+    // At most one reload a minute, in case a slow network keeps serving the saved copy (ui/sw.js).
+    try { if (Date.now() - Number(sessionStorage.getItem('reloadedAt') || 0) < 60e3) return; sessionStorage.setItem('reloadedAt', Date.now()); } catch {}
+    location.reload();
+  }
+  checkVersion();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkVersion(); });
+  setInterval(checkVersion, 60e3);
+}
+
+// Phone runs are full screen: the top bar stays hidden, and comes back only after a real scroll up
+// (well below the top: the rubber-band bounce at the top of a short page must not count).
+{
+  let anchor = 0;
+  const peek = (on) => document.body.classList.toggle('chrome-peek', on);
+  addEventListener('scroll', () => {
+    const y = scrollY;
+    if (y < 80) { peek(false); anchor = Math.max(y, 0); return; }
+    if (y > anchor) { anchor = y; peek(false); }
+    else if (anchor - y > 60) { peek(true); anchor = y; }
+  }, { passive: true });
+  Quiz.on('showQuestion', () => { peek(false); anchor = 0; });
+}
+
+// "Ask about this answer" folds to its header on a phone; tap the header to open it.
+{
+  const head = document.querySelector('#chat .insp-head');
+  if (head) {
+    head.setAttribute('role', 'button');
+    head.tabIndex = 0;
+    head.onclick = () => $('chat').classList.toggle('chat-open');
+  }
+  Quiz.on('showQuestion', () => $('chat').classList.remove('chat-open'));
+}
+
+// Next in the bottom line (phone multiple choice) does what the card's Next does, once there is one.
+{
+  const sync = () => { $('barNext').disabled = !$('dcNext'); };
+  new MutationObserver(sync).observe($('decide'), { childList: true, subtree: true });
+  $('barNext').onclick = () => { const n = $('dcNext'); if (n) n.click(); };
+  sync();
+}
+
+// The status line's height, for the action bar pinned just above it on phones (--statusbar-h).
+{
+  const bar = document.querySelector('.statusbar');
+  if (bar && window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--statusbar-h', `${bar.offsetHeight}px`)).observe(bar);
+}
+document.addEventListener('input', (e) => { if (e.target.matches('.qcard textarea.field, #chatInput')) autoGrow(e.target); });
+Quiz.on('showQuestion', () => document.querySelectorAll('.qcard textarea.field, #chatInput').forEach((t) => (t.style.height = '')));
+
+$('chatSend').onclick = () => sendChat($('chatInput').value);
+$('chatInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey) { e.preventDefault(); sendChat($('chatInput').value); }
+});
+document.querySelectorAll('#chat [data-ask]').forEach((b) => (b.onclick = () => sendChat(b.dataset.ask)));
+$('appealChip').onclick = () => {
+  const t = $('chatInput');
+  if (!t.value.trim()) t.value = 'I think the grade is wrong: ';
+  t.focus(); t.setSelectionRange(t.value.length, t.value.length); autoGrow(t);
+};
+
+// ---------- grading rules from upheld appeals ----------
+async function loadLessons() {
+  let lessons = [];
+  try { ({ lessons } = await Quiz.api('api/grader/lessons')); } catch { return; }
+  const box = $('graderLessons');
+  box.classList.toggle('hidden', !lessons.length);
+  if (!lessons.length) return;
+  box.innerHTML = `<details class="closed"><summary>${icon('chevron-right', 'chev')}Grading rules you've taught the AI (${lessons.length})</summary>
+    <p class="list-footer" style="padding:0 0 8px">Added when an appeal in the chat showed a grading mistake. Every grade follows them; delete any that's wrong.</p>
+    <div class="list">${lessons.map((l) => `<div class="row-item">${icon('sparkles', 'ok')}<span class="grow">${esc(l.text)}<span class="sub">${new Date(l.ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span></span>
+      <button class="icon-btn" type="button" data-lesson-del="${esc(l.id)}" title="Delete this rule" aria-label="Delete this rule">${icon('trash')}</button></div>`).join('')}</div></details>`;
+  box.querySelectorAll('[data-lesson-del]').forEach((b) => (b.onclick = async () => {
+    if (!(await confirmAlert({ title: 'Delete this grading rule?', text: 'The AI stops applying it to new grades.', ok: 'Delete', destructive: true }))) return;
+    await Quiz.api('api/grader/lessons/remove', { id: b.dataset.lessonDel }).catch(() => {});
+    loadLessons();
+  }));
+}
+loadLessons();
+
+// ---------- "What confused me" gaps ----------
+
+var gapPoll = null;  // var: loadTopics() may call loadGaps() before this line runs
+
+// `chat` (optional): { reply } when the gap comes from a side-chat exchange. Returns true when saved.
+async function saveGap(q, text, r, answer, chat) {
+  showToast('Saved what confused you. The AI is matching it to your notes and related questions…');
+  try {
+    const res = await fetch('api/gaps', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: q.id, text, rating: r, answer, chat }),
+    });
+    if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+    loadGaps();
+    return true;
+  } catch (e) {
+    showToast(`Couldn't save what confused you: ${e.message}`);
+    return false;
+  }
+}
+
+function showToast(text) {
+  const t = $('toast');
+  t.textContent = text;
+  t.classList.remove('hidden');
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => t.classList.add('hidden'), 6000);
+}
+
+async function gapAction(id, action) {
+  await fetch(`api/gaps/${encodeURIComponent(id)}/${action}`, { method: 'POST' });
+  loadGaps();
+  if (action === 'resolve' || action === 'reopen' || action === 'delete') loadTopics();
+}
+
+async function loadGaps() {
+  let data;
+  try { data = await (await fetch('api/gaps')).json(); } catch { return; }
+  renderGaps(data);
+  // keep refreshing while Claude is still analyzing one
+  clearTimeout(gapPoll);
+  if (data.open.some((g) => g.analysis?.state === 'pending')) gapPoll = setTimeout(loadGaps, 4000);
+}
+
+function gapCard(g) {
+  const a = g.analysis || {};
+  const said = g.texts[g.texts.length - 1].text;
+  const title = a.concept || said.slice(0, 70);
+  const noteName = a.note ? a.note.title + (a.note.heading ? ` › ${a.note.heading}` : '') : '';
+  const related = a.relatedIds || [];
+  let body = '';
+  if (a.state === 'pending') body = '<div class="why"><span class="spinner"></span>The AI is matching this to your notes and questions…</div>';
+  else if (a.state === 'error') body = `<div class="why">${icon('warning')}<span>Couldn't analyze: ${esc(a.error || '')}</span></div>`;
+  else if (a.state === 'manual') body = '<div class="why">The AI isn\'t available, so this is linked to the question\'s own note. Close it by hand when it clicks.</div>';
+  else if (a.why || a.advice || a.missingNote) {
+    body = `<div class="gap-body clamp">
+      ${a.why ? `<p class="gap-text">${inline(a.why)}</p>` : ''}
+      ${a.advice ? `<div class="gap-tip">${icon('hint')}<span>${inline(a.advice)}</span></div>` : ''}
+      ${a.missingNote ? `<div class="gap-note">${icon('note')}<span>No note covers this yet. Consider writing one on <b>${esc(a.missingNote)}</b>.</span></div>` : ''}
+      ${noteName ? `<div class="gap-note">${icon('note')}<span>Read: ${esc(noteName)}</span></div>` : ''}
+    </div><button class="btn btn-plain gap-more" type="button" hidden>Show more</button>`;
+  }
+  const progress = g.needed
+    ? `<div class="gprog"><span class="progress"><span style="width:${Math.min(100, (g.passedIds.length / g.needed) * 100)}%"></span></span>
+       <span>${g.passedIds.length} of ${g.needed} ${g.origin === 'grade' ? 'smaller' : 'related'} questions answered well</span></div>`
+    : '';
+  const from = g.origin === 'grade' ? 'From your answer on' : g.texts[g.texts.length - 1].chatReply ? 'You asked in chat about' : `You wrote “${said}” on`;
+  return `<article class="gap ${g.active ? '' : 'queued'}" data-gap-card="${esc(g.id)}">
+    <div class="gap-head"><span class="tag" style="--tag:${subjectTint(g.subject)}">${esc(g.subject)}</span>
+      ${g.active ? '' : '<span class="badge" title="3 gaps are already active in this subject; this one waits its turn">Queued</span>'}
+      <span class="grow"></span>
+      <button class="btn btn-plain" type="button" data-gap-act="resolve" data-gap="${esc(g.id)}" title="Close it: you understand it now">${icon('check')}I get it now</button>
+      <button class="icon-btn" type="button" data-gap-del="${esc(g.id)}" title="Delete" aria-label="Delete">${icon('trash')}</button></div>
+    <h3 class="concept">${esc(title)}</h3>
+    <p class="said" title="${esc(g.sourceQuestion)}">${esc(from)} “${esc(g.sourceQuestion)}”</p>
+    ${body}${progress}
+    <div class="gap-actions">
+      ${related.length ? `<button class="btn btn-tinted" type="button" data-gap-practice="${esc(g.id)}" title="The ${related.length} questions that build this, then the original one">${icon('target')}Practice ${related.length}</button>` : ''}
+      <button class="btn" type="button" data-gap-teach="${esc(g.id)}" title="Start a lesson on this concept">${icon('teach')}Teach me</button>
+      ${g.url ? `<a class="btn" href="${esc(g.url)}" title="Open in Obsidian: ${esc(noteName || 'the note')}">${icon('note')}Read note</a>` : ''}
+      ${a.state === 'error' ? `<button class="btn" type="button" data-gap-act="reanalyze" data-gap="${esc(g.id)}">${icon('refresh')}Retry</button>` : ''}
+    </div>
+  </article>`;
+}
+
+function renderGaps({ open, resolved }) {
+  const box = $('studyNext');
+  renderSideGaps(open);
+  if (!open.length && !resolved.length) { box.classList.add('hidden'); return; }
+  // Grouped by subject (each card carries its subject chip).
+  const ordered = [...open].sort((x, y) => subjectOrder.indexOf(x.subject) - subjectOrder.indexOf(y.subject));
+  box.innerHTML = `
+    <div class="group-head"><h2>Study next</h2></div>
+    ${open.length ? `<div class="gap-grid">${ordered.map(gapCard).join('')}</div>`
+      : '<p class="list-footer" style="padding-top:0">Nothing here yet. When an answer shows a gap, the AI writes smaller questions for it and they show up here.</p>'}
+    ${resolved.length ? `<details class="closed"><summary>${icon('chevron-right', 'chev')}Recently closed (${resolved.length})</summary><div class="list">${resolved.map((g) =>
+      `<div class="row-item">${icon('check-circle', 'ok')}<span class="grow">${esc(g.analysis?.concept || g.texts[0].text.slice(0, 60))}
+        <span class="sub">${g.resolvedBy === 'auto' ? 'Closed by practice' : 'Closed by you'}${g.sourceRetried ? '' : ' · the original question comes back soon'}</span></span>
+       <button class="btn btn-plain btn-sm" type="button" data-gap-act="reopen" data-gap="${esc(g.id)}">Reopen</button></div>`).join('')}</div></details>` : ''}`;
+  box.querySelectorAll('[data-gap-del]').forEach((b) => (b.onclick = async () => {
+    if (await confirmAlert({ title: 'Delete this gap?', text: 'It leaves Study next and stops steering your practice.', ok: 'Delete', destructive: true })) gapAction(b.dataset.gapDel, 'delete');
+  }));
+  box.classList.remove('hidden');
+  // "Show more" only where the text is really cut.
+  box.querySelectorAll('.gap-body').forEach((b) => {
+    const more = b.nextElementSibling;
+    const cut = [...b.querySelectorAll('.gap-text, .gap-tip > span')].some((x) => x.scrollHeight > x.clientHeight + 2) || b.querySelector('.gap-note');
+    if (!cut || !more) return;
+    more.hidden = false;
+    more.onclick = () => { const open = b.classList.toggle('clamp'); more.textContent = open ? 'Show more' : 'Show less'; };
+  });
+  box.querySelectorAll('[data-gap-act]').forEach((b) => (b.onclick = () => gapAction(b.dataset.gap, b.dataset.gapAct)));
+  box.querySelectorAll('[data-gap-practice]').forEach((b) => (b.onclick = () => {
+    const g = open.find((x) => x.id === b.dataset.gapPractice);
+    // the questions that build the concept, then the original question to check it landed
+    startPlan([...g.analysis.relatedIds, g.sourceId], `Gap: ${g.analysis.concept || 'flagged'}`);
+  }));
+  // Teach mode (ui/teach.js) listens for 'quiz:teach'. Map nodes send the same event.
+  box.querySelectorAll('[data-gap-teach]').forEach((b) => (b.onclick = () => {
+    const g = open.find((x) => x.id === b.dataset.gapTeach);
+    window.dispatchEvent(new CustomEvent('quiz:teach', { detail: {
+      gapId: g.id, subject: g.subject, goal: g.analysis?.concept || g.texts[g.texts.length - 1].text,
+      noteTitle: g.analysis?.note?.title || null,
+    } }));
+  }));
+}
+
+</script>
+<script>
+// Feature modules, loaded in this order (later ones may use earlier ones). A missing file is skipped.
+for (const name of ['think', 'mcq', 'practice', 'map', 'lab', 'board', 'live', 'handsfree', 'materials', 'teach', 'tolearn', 'home', 'offline', 'settings', 'editor', 'interview']) {   // icons.js already loaded in <head>
+  const s = document.createElement('script');
+  s.src = `ui/${name}.js`;
+  s.async = false;
+  document.body.appendChild(s);
+}
+// Status line: is local dictation (Whisper) ready? ui/think.js knows once its status call returns
+// (and again after the mic model / language changes in Settings). The tooltip names the model, and why
+// it isn't the one asked for when that model isn't installed.
+function paintDictStatus(info) {
+  const el = $('dictStatus');
+  if (!info || !info.available) { el.innerHTML = ''; el.title = ''; return; }
+  el.innerHTML = `${icon(info.fallback ? 'warning' : 'mic')}Dictation on ${esc((info.install && info.install.machine) || 'this computer')}`;
+  el.title = `Whisper model: ${info.using}${info.fallback ? `\n${info.fallback}` : ''}`;
+}
+window.addEventListener('quiz:dictate-status', (e) => paintDictStatus(e.detail));
+// Keep a copy of the app on this device for offline practice (ui/sw.js). Needs https or localhost.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch((e) => console.warn('service worker:', e.message)));
+}
+window.addEventListener('load', () => {
+  if (window.Quiz.think && Quiz.think.ready) Quiz.think.ready.then(() => paintDictStatus(Quiz.think.info));
+});
+</script>
+</body>
+</html>

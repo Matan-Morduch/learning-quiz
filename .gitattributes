@@ -1,0 +1,8 @@
+# Windows start files keep their CRLF line endings exactly as committed.
+*.cmd -text
+# Left out of the public GitHub copy (deploy/publish-github.sh uses git archive): experiments and private planning notes.
+spikes/ export-ignore
+deploy/mac/ export-ignore
+docs/IDEAS.md export-ignore
+docs/*-PLAN.md export-ignore
+docs/LIVE-DRAW-SPIKE.md export-ignore

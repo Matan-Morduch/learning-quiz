@@ -1,0 +1,1785 @@
+{
+ "source": "https://github.com/liquidslr/leetcode-company-wise-problems/tree/main/Nvidia",
+ "updated": "2026-10-20",
+ "note": "freq = the list's 0-100 score (All); score = freq pulled up by the 30-day/3-month/6-month lists; patterns tagged by hand (what you need to know to solve it).",
+ "problems": [
+  {
+   "slug": "special-binary-string",
+   "title": "Special Binary String",
+   "difficulty": "Hard",
+   "freq": 100.0,
+   "recent": null,
+   "score": 100.0,
+   "patterns": [
+    "recursion",
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "String, Divide and Conquer, Sorting"
+  },
+  {
+   "slug": "lru-cache",
+   "title": "LRU Cache",
+   "difficulty": "Medium",
+   "freq": 93.3,
+   "recent": {
+    "window": "3m",
+    "freq": 100.0
+   },
+   "score": 96.7,
+   "patterns": [
+    "hash-map",
+    "linked-list"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Hash Table, Linked List, Design, Doubly-Linked List"
+  },
+  {
+   "slug": "group-anagrams",
+   "title": "Group Anagrams",
+   "difficulty": "Medium",
+   "freq": 82.1,
+   "recent": {
+    "window": "3m",
+    "freq": 87.9
+   },
+   "score": 91.0,
+   "patterns": [
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, String, Sorting"
+  },
+  {
+   "slug": "best-time-to-buy-and-sell-stock",
+   "title": "Best Time to Buy and Sell Stock",
+   "difficulty": "Easy",
+   "freq": 86.9,
+   "recent": {
+    "window": "3m",
+    "freq": 87.9
+   },
+   "score": 87.4,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Dynamic Programming"
+  },
+  {
+   "slug": "two-sum",
+   "title": "Two Sum",
+   "difficulty": "Easy",
+   "freq": 85.4,
+   "recent": {
+    "window": "6m",
+    "freq": 73.7
+   },
+   "score": 85.4,
+   "patterns": [
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table"
+  },
+  {
+   "slug": "longest-substring-without-repeating-characters",
+   "title": "Longest Substring Without Repeating Characters",
+   "difficulty": "Medium",
+   "freq": 85.4,
+   "recent": {
+    "window": "6m",
+    "freq": 73.7
+   },
+   "score": 85.4,
+   "patterns": [
+    "sliding-window",
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Hash Table, String, Sliding Window"
+  },
+  {
+   "slug": "merge-k-sorted-lists",
+   "title": "Merge k Sorted Lists",
+   "difficulty": "Hard",
+   "freq": 82.1,
+   "recent": {
+    "window": "3m",
+    "freq": 87.9
+   },
+   "score": 85.0,
+   "patterns": [
+    "linked-list",
+    "heap"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Linked List, Divide and Conquer, Heap (Priority Queue), Merge Sort, Tournament Sort"
+  },
+  {
+   "slug": "decode-string",
+   "title": "Decode String",
+   "difficulty": "Medium",
+   "freq": 59.8,
+   "recent": {
+    "window": "30d",
+    "freq": 100.0
+   },
+   "score": 83.9,
+   "patterns": [
+    "stack"
+   ],
+   "testable": true,
+   "leetcodeTopics": "String, Stack, Recursion"
+  },
+  {
+   "slug": "restore-ip-addresses",
+   "title": "Restore IP Addresses",
+   "difficulty": "Medium",
+   "freq": 78.1,
+   "recent": {
+    "window": "6m",
+    "freq": 93.6
+   },
+   "score": 83.5,
+   "patterns": [
+    "backtracking"
+   ],
+   "testable": true,
+   "leetcodeTopics": "String, Backtracking"
+  },
+  {
+   "slug": "number-of-islands",
+   "title": "Number of Islands",
+   "difficulty": "Medium",
+   "freq": 73.5,
+   "recent": {
+    "window": "3m",
+    "freq": 87.9
+   },
+   "score": 80.7,
+   "patterns": [
+    "graph"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Depth-First Search, Breadth-First Search, Union-Find, Matrix"
+  },
+  {
+   "slug": "trapping-rain-water",
+   "title": "Trapping Rain Water",
+   "difficulty": "Hard",
+   "freq": 70.7,
+   "recent": {
+    "window": "3m",
+    "freq": 87.9
+   },
+   "score": 79.3,
+   "patterns": [
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Two Pointers, Dynamic Programming, Stack, Monotonic Stack"
+  },
+  {
+   "slug": "valid-parentheses",
+   "title": "Valid Parentheses",
+   "difficulty": "Easy",
+   "freq": 78.1,
+   "recent": null,
+   "score": 78.1,
+   "patterns": [
+    "stack"
+   ],
+   "testable": true,
+   "leetcodeTopics": "String, Stack, Bracket Sequences"
+  },
+  {
+   "slug": "top-k-frequent-elements",
+   "title": "Top K Frequent Elements",
+   "difficulty": "Medium",
+   "freq": 67.6,
+   "recent": {
+    "window": "3m",
+    "freq": 87.9
+   },
+   "score": 77.8,
+   "patterns": [
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, Divide and Conquer, Sorting, Heap (Priority Queue), Bucket Sort, Counting, Quickselect"
+  },
+  {
+   "slug": "last-stone-weight",
+   "title": "Last Stone Weight",
+   "difficulty": "Easy",
+   "freq": 75.9,
+   "recent": null,
+   "score": 75.9,
+   "patterns": [
+    "heap"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Heap (Priority Queue)"
+  },
+  {
+   "slug": "maximize-greatness-of-an-array",
+   "title": "Maximize Greatness of an Array",
+   "difficulty": "Medium",
+   "freq": 75.9,
+   "recent": null,
+   "score": 75.9,
+   "patterns": [
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Two Pointers, Greedy, Sorting"
+  },
+  {
+   "slug": "read-n-characters-given-read4-ii-call-multiple-times",
+   "title": "Read N Characters Given read4 II - Call Multiple Times",
+   "difficulty": "Hard",
+   "freq": 38.7,
+   "recent": {
+    "window": "30d",
+    "freq": 100.0
+   },
+   "score": 75.5,
+   "patterns": [],
+   "testable": false,
+   "leetcodeTopics": "Array, Simulation, Interactive"
+  },
+  {
+   "slug": "search-in-rotated-sorted-array",
+   "title": "Search in Rotated Sorted Array",
+   "difficulty": "Medium",
+   "freq": 73.5,
+   "recent": null,
+   "score": 73.5,
+   "patterns": [
+    "binary-search"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Binary Search"
+  },
+  {
+   "slug": "maximum-subarray",
+   "title": "Maximum Subarray",
+   "difficulty": "Medium",
+   "freq": 73.5,
+   "recent": null,
+   "score": 73.5,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Divide and Conquer, Dynamic Programming"
+  },
+  {
+   "slug": "minimum-operations-to-reduce-an-integer-to-0",
+   "title": "Minimum Operations to Reduce an Integer to 0",
+   "difficulty": "Medium",
+   "freq": 73.5,
+   "recent": null,
+   "score": 73.5,
+   "patterns": [
+    "bit-manipulation",
+    "greedy"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Dynamic Programming, Greedy, Bit Manipulation"
+  },
+  {
+   "slug": "fizz-buzz",
+   "title": "Fizz Buzz",
+   "difficulty": "Easy",
+   "freq": 73.5,
+   "recent": null,
+   "score": 73.5,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Math, String, Simulation"
+  },
+  {
+   "slug": "maximum-number-of-visible-points",
+   "title": "Maximum Number of Visible Points",
+   "difficulty": "Hard",
+   "freq": 70.7,
+   "recent": null,
+   "score": 70.7,
+   "patterns": [
+    "math",
+    "sliding-window"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Math, Geometry, Sliding Window, Sorting"
+  },
+  {
+   "slug": "container-with-most-water",
+   "title": "Container With Most Water",
+   "difficulty": "Medium",
+   "freq": 70.7,
+   "recent": null,
+   "score": 70.7,
+   "patterns": [
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Two Pointers, Greedy"
+  },
+  {
+   "slug": "reverse-bits",
+   "title": "Reverse Bits",
+   "difficulty": "Easy",
+   "freq": 67.6,
+   "recent": null,
+   "score": 67.6,
+   "patterns": [
+    "bit-manipulation"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Divide and Conquer, Bit Manipulation"
+  },
+  {
+   "slug": "copy-list-with-random-pointer",
+   "title": "Copy List with Random Pointer",
+   "difficulty": "Medium",
+   "freq": 64.0,
+   "recent": {
+    "window": "6m",
+    "freq": 73.7
+   },
+   "score": 67.4,
+   "patterns": [
+    "hash-map",
+    "linked-list"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Hash Table, Linked List"
+  },
+  {
+   "slug": "sliding-window-maximum",
+   "title": "Sliding Window Maximum",
+   "difficulty": "Hard",
+   "freq": 64.0,
+   "recent": {
+    "window": "6m",
+    "freq": 73.7
+   },
+   "score": 67.4,
+   "patterns": [
+    "sliding-window",
+    "stack"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Queue, Sliding Window, Heap (Priority Queue), Monotonic Queue, Range Minimum/Maximum Query"
+  },
+  {
+   "slug": "koko-eating-bananas",
+   "title": "Koko Eating Bananas",
+   "difficulty": "Medium",
+   "freq": 54.6,
+   "recent": {
+    "window": "6m",
+    "freq": 85.3
+   },
+   "score": 65.3,
+   "patterns": [
+    "binary-search"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Binary Search"
+  },
+  {
+   "slug": "rotate-image",
+   "title": "Rotate Image",
+   "difficulty": "Medium",
+   "freq": 59.8,
+   "recent": {
+    "window": "6m",
+    "freq": 73.7
+   },
+   "score": 64.7,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Math, Matrix"
+  },
+  {
+   "slug": "4sum",
+   "title": "4Sum",
+   "difficulty": "Medium",
+   "freq": 64.0,
+   "recent": null,
+   "score": 64.0,
+   "patterns": [
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Two Pointers, Sorting"
+  },
+  {
+   "slug": "find-the-original-array-of-prefix-xor",
+   "title": "Find The Original Array of Prefix Xor",
+   "difficulty": "Medium",
+   "freq": 64.0,
+   "recent": null,
+   "score": 64.0,
+   "patterns": [
+    "bit-manipulation"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Bit Manipulation"
+  },
+  {
+   "slug": "find-first-and-last-position-of-element-in-sorted-array",
+   "title": "Find First and Last Position of Element in Sorted Array",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": {
+    "window": "3m",
+    "freq": 87.9
+   },
+   "score": 63.3,
+   "patterns": [
+    "binary-search"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Binary Search"
+  },
+  {
+   "slug": "linked-list-cycle",
+   "title": "Linked List Cycle",
+   "difficulty": "Easy",
+   "freq": 54.6,
+   "recent": {
+    "window": "6m",
+    "freq": 73.7
+   },
+   "score": 61.3,
+   "patterns": [
+    "linked-list",
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Hash Table, Linked List, Two Pointers, Floyd's Cycle Finding Algorithm"
+  },
+  {
+   "slug": "design-circular-queue",
+   "title": "Design Circular Queue",
+   "difficulty": "Medium",
+   "freq": 54.6,
+   "recent": {
+    "window": "6m",
+    "freq": 73.7
+   },
+   "score": 61.3,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Linked List, Design, Queue"
+  },
+  {
+   "slug": "network-delay-time",
+   "title": "Network Delay Time",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": {
+    "window": "6m",
+    "freq": 85.3
+   },
+   "score": 61.0,
+   "patterns": [
+    "graph",
+    "heap"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Depth-First Search, Breadth-First Search, Graph Theory, Heap (Priority Queue), Shortest Path, Dijkstra's Algorithm"
+  },
+  {
+   "slug": "merge-intervals",
+   "title": "Merge Intervals",
+   "difficulty": "Medium",
+   "freq": 59.8,
+   "recent": null,
+   "score": 59.8,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Sorting, Quicksort"
+  },
+  {
+   "slug": "break-a-palindrome",
+   "title": "Break a Palindrome",
+   "difficulty": "Medium",
+   "freq": 59.8,
+   "recent": null,
+   "score": 59.8,
+   "patterns": [
+    "greedy"
+   ],
+   "testable": true,
+   "leetcodeTopics": "String, Greedy"
+  },
+  {
+   "slug": "find-the-duplicate-number",
+   "title": "Find the Duplicate Number",
+   "difficulty": "Medium",
+   "freq": 59.8,
+   "recent": null,
+   "score": 59.8,
+   "patterns": [
+    "binary-search"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Two Pointers, Binary Search, Bit Manipulation, Pigeonhole Principle, Floyd's Cycle Finding Algorithm"
+  },
+  {
+   "slug": "dot-product-of-two-sparse-vectors",
+   "title": "Dot Product of Two Sparse Vectors",
+   "difficulty": "Medium",
+   "freq": 59.8,
+   "recent": null,
+   "score": 59.8,
+   "patterns": [
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, Two Pointers, Design, Linear Algebra"
+  },
+  {
+   "slug": "unique-paths-ii",
+   "title": "Unique Paths II",
+   "difficulty": "Medium",
+   "freq": 59.8,
+   "recent": null,
+   "score": 59.8,
+   "patterns": [
+    "dp"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Dynamic Programming, Matrix"
+  },
+  {
+   "slug": "subarray-sum-equals-k",
+   "title": "Subarray Sum Equals K",
+   "difficulty": "Medium",
+   "freq": 59.8,
+   "recent": null,
+   "score": 59.8,
+   "patterns": [
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, Prefix Sum"
+  },
+  {
+   "slug": "rotate-list",
+   "title": "Rotate List",
+   "difficulty": "Medium",
+   "freq": 59.8,
+   "recent": null,
+   "score": 59.8,
+   "patterns": [
+    "linked-list",
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Linked List, Two Pointers"
+  },
+  {
+   "slug": "product-of-array-except-self",
+   "title": "Product of Array Except Self",
+   "difficulty": "Medium",
+   "freq": 59.8,
+   "recent": null,
+   "score": 59.8,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Prefix Sum"
+  },
+  {
+   "slug": "add-two-numbers",
+   "title": "Add Two Numbers",
+   "difficulty": "Medium",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "linked-list"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Linked List, Math, Recursion"
+  },
+  {
+   "slug": "3sum",
+   "title": "3Sum",
+   "difficulty": "Medium",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Two Pointers, Sorting"
+  },
+  {
+   "slug": "house-robber",
+   "title": "House Robber",
+   "difficulty": "Medium",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "dp"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Dynamic Programming"
+  },
+  {
+   "slug": "missing-number",
+   "title": "Missing Number",
+   "difficulty": "Easy",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, Math, Binary Search, Bit Manipulation, Sorting"
+  },
+  {
+   "slug": "move-zeroes",
+   "title": "Move Zeroes",
+   "difficulty": "Easy",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Two Pointers"
+  },
+  {
+   "slug": "string-to-integer-atoi",
+   "title": "String to Integer (atoi)",
+   "difficulty": "Medium",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "String"
+  },
+  {
+   "slug": "merge-sorted-array",
+   "title": "Merge Sorted Array",
+   "difficulty": "Easy",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Two Pointers, Sorting"
+  },
+  {
+   "slug": "reverse-words-in-a-string",
+   "title": "Reverse Words in a String",
+   "difficulty": "Medium",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Two Pointers, String"
+  },
+  {
+   "slug": "sort-colors",
+   "title": "Sort Colors",
+   "difficulty": "Medium",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Two Pointers, Sorting, Quicksort, Bubble Sort"
+  },
+  {
+   "slug": "remove-stones-to-minimize-the-total",
+   "title": "Remove Stones to Minimize the Total",
+   "difficulty": "Medium",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "heap"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Greedy, Heap (Priority Queue)"
+  },
+  {
+   "slug": "string-compression",
+   "title": "String Compression",
+   "difficulty": "Medium",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Two Pointers, String"
+  },
+  {
+   "slug": "asteroid-collision",
+   "title": "Asteroid Collision",
+   "difficulty": "Medium",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "stack"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Stack, Simulation"
+  },
+  {
+   "slug": "power-of-two",
+   "title": "Power of Two",
+   "difficulty": "Easy",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "bit-manipulation"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Math, Bit Manipulation, Recursion"
+  },
+  {
+   "slug": "valid-anagram",
+   "title": "Valid Anagram",
+   "difficulty": "Easy",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Hash Table, String, Sorting"
+  },
+  {
+   "slug": "maximum-number-of-events-that-can-be-attended",
+   "title": "Maximum Number of Events That Can Be Attended",
+   "difficulty": "Medium",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "heap",
+    "greedy"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Greedy, Sorting, Heap (Priority Queue)"
+  },
+  {
+   "slug": "minimum-absolute-difference",
+   "title": "Minimum Absolute Difference",
+   "difficulty": "Easy",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Sorting"
+  },
+  {
+   "slug": "longest-consecutive-sequence",
+   "title": "Longest Consecutive Sequence",
+   "difficulty": "Medium",
+   "freq": 54.6,
+   "recent": null,
+   "score": 54.6,
+   "patterns": [
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, Union-Find"
+  },
+  {
+   "slug": "climbing-stairs",
+   "title": "Climbing Stairs",
+   "difficulty": "Easy",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "dp"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Math, Dynamic Programming, Memoization"
+  },
+  {
+   "slug": "set-matrix-zeroes",
+   "title": "Set Matrix Zeroes",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, Matrix"
+  },
+  {
+   "slug": "reverse-linked-list-ii",
+   "title": "Reverse Linked List II",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "linked-list"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Linked List"
+  },
+  {
+   "slug": "find-peak-element",
+   "title": "Find Peak Element",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "binary-search"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Binary Search"
+  },
+  {
+   "slug": "maximal-square",
+   "title": "Maximal Square",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "dp"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Dynamic Programming, Matrix"
+  },
+  {
+   "slug": "counting-bits",
+   "title": "Counting Bits",
+   "difficulty": "Easy",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "bit-manipulation",
+    "dp"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Dynamic Programming, Bit Manipulation"
+  },
+  {
+   "slug": "rectangle-area",
+   "title": "Rectangle Area",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "math"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Math, Geometry"
+  },
+  {
+   "slug": "reverse-linked-list",
+   "title": "Reverse Linked List",
+   "difficulty": "Easy",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "linked-list"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Linked List, Recursion"
+  },
+  {
+   "slug": "spiral-matrix",
+   "title": "Spiral Matrix",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Matrix, Simulation"
+  },
+  {
+   "slug": "minimum-path-sum",
+   "title": "Minimum Path Sum",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "dp"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Dynamic Programming, Matrix"
+  },
+  {
+   "slug": "jump-game",
+   "title": "Jump Game",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "greedy"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Dynamic Programming, Greedy"
+  },
+  {
+   "slug": "integer-to-english-words",
+   "title": "Integer to English Words",
+   "difficulty": "Hard",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "recursion"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Math, String, Recursion"
+  },
+  {
+   "slug": "max-sum-of-a-pair-with-equal-sum-of-digits",
+   "title": "Max Sum of a Pair With Equal Sum of Digits",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, Sorting, Heap (Priority Queue)"
+  },
+  {
+   "slug": "first-unique-character-in-a-string",
+   "title": "First Unique Character in a String",
+   "difficulty": "Easy",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Hash Table, String, Queue, Counting"
+  },
+  {
+   "slug": "maximum-product-of-three-numbers",
+   "title": "Maximum Product of Three Numbers",
+   "difficulty": "Easy",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Math, Sorting"
+  },
+  {
+   "slug": "find-the-celebrity",
+   "title": "Find the Celebrity",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [],
+   "testable": false,
+   "leetcodeTopics": "Two Pointers, Graph Theory, Interactive"
+  },
+  {
+   "slug": "course-schedule",
+   "title": "Course Schedule",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "graph"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Depth-First Search, Breadth-First Search, Graph Theory, Topological Sort, Directed Acyclic Graph"
+  },
+  {
+   "slug": "longest-increasing-subsequence",
+   "title": "Longest Increasing Subsequence",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "dp",
+    "binary-search"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Binary Search, Dynamic Programming, Longest Increasing Subsequence"
+  },
+  {
+   "slug": "unique-paths",
+   "title": "Unique Paths",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "dp"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Math, Dynamic Programming, Combinatorics"
+  },
+  {
+   "slug": "min-stack",
+   "title": "Min Stack",
+   "difficulty": "Medium",
+   "freq": 47.9,
+   "recent": null,
+   "score": 47.9,
+   "patterns": [
+    "stack"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Stack, Design"
+  },
+  {
+   "slug": "minimum-knight-moves",
+   "title": "Minimum Knight Moves",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "graph"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Breadth-First Search, Heuristic Search, Bidirectional Search, A* Search"
+  },
+  {
+   "slug": "max-points-on-a-line",
+   "title": "Max Points on a Line",
+   "difficulty": "Hard",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "math",
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, Math, Geometry, Euclidean Algorithm, Greatest Common Divisor"
+  },
+  {
+   "slug": "kth-largest-element-in-an-array",
+   "title": "Kth Largest Element in an Array",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "heap"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Divide and Conquer, Sorting, Heap (Priority Queue), Quickselect"
+  },
+  {
+   "slug": "linked-list-random-node",
+   "title": "Linked List Random Node",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [],
+   "testable": false,
+   "leetcodeTopics": "Linked List, Math, Reservoir Sampling, Randomized"
+  },
+  {
+   "slug": "sliding-puzzle",
+   "title": "Sliding Puzzle",
+   "difficulty": "Hard",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "graph"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Dynamic Programming, Backtracking, Breadth-First Search, Memoization, Matrix, Heuristic Search, Bidirectional Search, A* Search"
+  },
+  {
+   "slug": "all-possible-full-binary-trees",
+   "title": "All Possible Full Binary Trees",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "tree",
+    "recursion"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Dynamic Programming, Tree, Recursion, Memoization, Binary Tree"
+  },
+  {
+   "slug": "fibonacci-number",
+   "title": "Fibonacci Number",
+   "difficulty": "Easy",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "dp"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Math, Dynamic Programming, Recursion, Memoization"
+  },
+  {
+   "slug": "task-scheduler-ii",
+   "title": "Task Scheduler II",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, Simulation"
+  },
+  {
+   "slug": "insert-delete-getrandom-o1",
+   "title": "Insert Delete GetRandom O(1)",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [],
+   "testable": false,
+   "leetcodeTopics": "Array, Hash Table, Math, Design, Randomized"
+  },
+  {
+   "slug": "longest-common-prefix",
+   "title": "Longest Common Prefix",
+   "difficulty": "Easy",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, String, Trie"
+  },
+  {
+   "slug": "serialize-and-deserialize-binary-tree",
+   "title": "Serialize and Deserialize Binary Tree",
+   "difficulty": "Hard",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "tree"
+   ],
+   "testable": true,
+   "leetcodeTopics": "String, Tree, Depth-First Search, Breadth-First Search, Design, Binary Tree"
+  },
+  {
+   "slug": "course-schedule-ii",
+   "title": "Course Schedule II",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "graph"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Depth-First Search, Breadth-First Search, Graph Theory, Topological Sort"
+  },
+  {
+   "slug": "delete-duplicate-folders-in-system",
+   "title": "Delete Duplicate Folders in System",
+   "difficulty": "Hard",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "trie",
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, String, Depth-First Search, Trie, Sorting, Hash Function"
+  },
+  {
+   "slug": "count-the-number-of-good-subsequences",
+   "title": "Count the Number of Good Subsequences",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "math"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Hash Table, Math, String, Combinatorics, Counting"
+  },
+  {
+   "slug": "reverse-string",
+   "title": "Reverse String",
+   "difficulty": "Easy",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Two Pointers, String"
+  },
+  {
+   "slug": "number-of-1-bits",
+   "title": "Number of 1 Bits",
+   "difficulty": "Easy",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "bit-manipulation"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Divide and Conquer, Bit Manipulation"
+  },
+  {
+   "slug": "merge-in-between-linked-lists",
+   "title": "Merge In Between Linked Lists",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "linked-list"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Linked List"
+  },
+  {
+   "slug": "the-maze",
+   "title": "The Maze",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "graph"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Depth-First Search, Breadth-First Search, Matrix"
+  },
+  {
+   "slug": "largest-number",
+   "title": "Largest Number",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "greedy"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, String, Greedy, Sorting"
+  },
+  {
+   "slug": "clone-graph",
+   "title": "Clone Graph",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "graph"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Hash Table, Depth-First Search, Breadth-First Search, Graph Theory"
+  },
+  {
+   "slug": "daily-temperatures",
+   "title": "Daily Temperatures",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "stack"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Stack, Monotonic Stack"
+  },
+  {
+   "slug": "middle-of-the-linked-list",
+   "title": "Middle of the Linked List",
+   "difficulty": "Easy",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "linked-list",
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Linked List, Two Pointers"
+  },
+  {
+   "slug": "number-of-ways-to-split-array",
+   "title": "Number of Ways to Split Array",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Prefix Sum"
+  },
+  {
+   "slug": "powx-n",
+   "title": "Pow(x, n)",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "recursion",
+    "math"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Math, Recursion"
+  },
+  {
+   "slug": "rotting-oranges",
+   "title": "Rotting Oranges",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "graph"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Breadth-First Search, Matrix"
+  },
+  {
+   "slug": "simplify-path",
+   "title": "Simplify Path",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "stack"
+   ],
+   "testable": true,
+   "leetcodeTopics": "String, Stack"
+  },
+  {
+   "slug": "word-pattern",
+   "title": "Word Pattern",
+   "difficulty": "Easy",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Hash Table, String"
+  },
+  {
+   "slug": "third-maximum-number",
+   "title": "Third Maximum Number",
+   "difficulty": "Easy",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Sorting"
+  },
+  {
+   "slug": "median-of-two-sorted-arrays",
+   "title": "Median of Two Sorted Arrays",
+   "difficulty": "Hard",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "binary-search"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Binary Search, Divide and Conquer"
+  },
+  {
+   "slug": "number-of-lines-to-write-string",
+   "title": "Number of Lines To Write String",
+   "difficulty": "Easy",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, String"
+  },
+  {
+   "slug": "longest-palindromic-substring",
+   "title": "Longest Palindromic Substring",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Two Pointers, String, Dynamic Programming, Manacher"
+  },
+  {
+   "slug": "next-greater-element-ii",
+   "title": "Next Greater Element II",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "stack"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Stack, Monotonic Stack"
+  },
+  {
+   "slug": "palindrome-linked-list",
+   "title": "Palindrome Linked List",
+   "difficulty": "Easy",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "linked-list",
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Linked List, Two Pointers, Stack, Recursion"
+  },
+  {
+   "slug": "diameter-of-binary-tree",
+   "title": "Diameter of Binary Tree",
+   "difficulty": "Easy",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "tree"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Tree, Depth-First Search, Binary Tree, DP on Trees"
+  },
+  {
+   "slug": "compare-version-numbers",
+   "title": "Compare Version Numbers",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "two-pointers"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Two Pointers, String"
+  },
+  {
+   "slug": "number-of-visible-people-in-a-queue",
+   "title": "Number of Visible People in a Queue",
+   "difficulty": "Hard",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "stack"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Stack, Monotonic Stack"
+  },
+  {
+   "slug": "count-primes",
+   "title": "Count Primes",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "math"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Math, Enumeration, Number Theory, Primality Test, Sieve Theory, Prime Number Sieve"
+  },
+  {
+   "slug": "all-nodes-distance-k-in-binary-tree",
+   "title": "All Nodes Distance K in Binary Tree",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "tree",
+    "graph"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Hash Table, Tree, Depth-First Search, Breadth-First Search, Binary Tree"
+  },
+  {
+   "slug": "contains-duplicate",
+   "title": "Contains Duplicate",
+   "difficulty": "Easy",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, Sorting"
+  },
+  {
+   "slug": "design-memory-allocator",
+   "title": "Design Memory Allocator",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, Design, Simulation"
+  },
+  {
+   "slug": "fizz-buzz-multithreaded",
+   "title": "Fizz Buzz Multithreaded",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [],
+   "testable": false,
+   "leetcodeTopics": "Concurrency"
+  },
+  {
+   "slug": "longest-cycle-in-a-graph",
+   "title": "Longest Cycle in a Graph",
+   "difficulty": "Hard",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "graph"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Depth-First Search, Breadth-First Search, Graph Theory, Topological Sort, Kosaraju's Algorithm, Tarjan's SCC Algorithm"
+  },
+  {
+   "slug": "binary-subarrays-with-sum",
+   "title": "Binary Subarrays With Sum",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "sliding-window",
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, Sliding Window, Prefix Sum"
+  },
+  {
+   "slug": "previous-permutation-with-one-swap",
+   "title": "Previous Permutation With One Swap",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "greedy"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Greedy"
+  },
+  {
+   "slug": "letter-combinations-of-a-phone-number",
+   "title": "Letter Combinations of a Phone Number",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "backtracking"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Hash Table, String, Backtracking"
+  },
+  {
+   "slug": "serialize-and-deserialize-n-ary-tree",
+   "title": "Serialize and Deserialize N-ary Tree",
+   "difficulty": "Hard",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "tree"
+   ],
+   "testable": true,
+   "leetcodeTopics": "String, Tree, Depth-First Search, Breadth-First Search"
+  },
+  {
+   "slug": "top-k-frequent-words",
+   "title": "Top K Frequent Words",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "hash-map",
+    "heap"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, String, Trie, Sorting, Heap (Priority Queue), Bucket Sort, Counting"
+  },
+  {
+   "slug": "first-missing-positive",
+   "title": "First Missing Positive",
+   "difficulty": "Hard",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table"
+  },
+  {
+   "slug": "best-time-to-buy-and-sell-stock-ii",
+   "title": "Best Time to Buy and Sell Stock II",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Dynamic Programming, Greedy"
+  },
+  {
+   "slug": "replace-words",
+   "title": "Replace Words",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "trie",
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Array, Hash Table, String, Trie"
+  },
+  {
+   "slug": "palindrome-number",
+   "title": "Palindrome Number",
+   "difficulty": "Easy",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "arrays"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Math"
+  },
+  {
+   "slug": "generate-parentheses",
+   "title": "Generate Parentheses",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "backtracking"
+   ],
+   "testable": true,
+   "leetcodeTopics": "String, Dynamic Programming, Backtracking, Bracket Sequences"
+  },
+  {
+   "slug": "longest-substring-with-at-most-k-distinct-characters",
+   "title": "Longest Substring with At Most K Distinct Characters",
+   "difficulty": "Medium",
+   "freq": 38.7,
+   "recent": null,
+   "score": 38.7,
+   "patterns": [
+    "sliding-window",
+    "hash-map"
+   ],
+   "testable": true,
+   "leetcodeTopics": "Hash Table, String, Sliding Window"
+  }
+ ]
+}

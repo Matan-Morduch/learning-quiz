@@ -1,0 +1,218 @@
+{
+ "title": "Two threads, one counter: the lost update",
+ "steps": [
+  {
+   "say": "Here is one process. Its memory holds a shared counter called sum, and it starts at zero.",
+   "draw": [
+    {
+     "op": "box",
+     "id": "proc",
+     "x": 0,
+     "y": 0,
+     "w": 12,
+     "tone": "gray",
+     "label": "Process 4120",
+     "h": 0.8
+    },
+    {
+     "op": "box",
+     "id": "mem",
+     "x": 4,
+     "y": 1.4,
+     "w": 4,
+     "tone": "purple",
+     "label": "Shared memory",
+     "rows": [
+      "sum = 0"
+     ],
+     "h": 1.12
+    }
+   ]
+  },
+  {
+   "say": "Two threads run inside it. Both can read and write sum, shown by the dashed arrows.",
+   "draw": [
+    {
+     "op": "box",
+     "id": "t1",
+     "x": 0,
+     "y": 3.4,
+     "w": 3,
+     "tone": "blue",
+     "label": "Thread 1",
+     "rows": [
+      "x: ?"
+     ],
+     "h": 1.12
+    },
+    {
+     "op": "box",
+     "id": "t2",
+     "x": 9,
+     "y": 3.4,
+     "w": 3,
+     "tone": "orange",
+     "label": "Thread 2",
+     "rows": [
+      "x: ?"
+     ],
+     "h": 1.12
+    },
+    {
+     "op": "arrow",
+     "id": "a1",
+     "from": "t1",
+     "to": "mem",
+     "label": "reads/writes",
+     "dashed": true,
+     "tone": "blue"
+    },
+    {
+     "op": "arrow",
+     "id": "a2",
+     "from": "t2",
+     "to": "mem",
+     "label": "reads/writes",
+     "dashed": true,
+     "tone": "orange"
+    }
+   ]
+  },
+  {
+   "say": "Each thread runs this. One line in code, but three separate steps for the CPU: load, add, store.",
+   "draw": [
+    {
+     "op": "code",
+     "id": "src",
+     "x": 0,
+     "y": 5.4,
+     "w": 5,
+     "tone": "gray",
+     "lines": [
+      "x = load(sum)",
+      "x = x + 1",
+      "store(sum, x)"
+     ],
+     "h": 1.36
+    },
+    {
+     "op": "table",
+     "id": "trace",
+     "x": 6,
+     "y": 5.4,
+     "w": 6,
+     "tone": "gray",
+     "cols": [
+      "T1 x",
+      "T2 x",
+      "sum"
+     ],
+     "rows": [
+      [
+       "-",
+       "-",
+       "0"
+      ]
+     ],
+     "h": 0.88
+    }
+   ]
+  },
+  {
+   "say": "Thread one loads sum. Its private copy x is now zero.",
+   "draw": [
+    {
+     "op": "mark",
+     "id": "src",
+     "line": 1
+    },
+    {
+     "op": "set",
+     "id": "trace",
+     "row": 0,
+     "col": 0,
+     "value": "0"
+    }
+   ]
+  },
+  {
+   "say": "Before it can store, the scheduler switches. Thread two also loads sum, and also sees zero.",
+   "draw": [
+    {
+     "op": "set",
+     "id": "trace",
+     "row": 0,
+     "col": 1,
+     "value": "0"
+    },
+    {
+     "op": "mark",
+     "id": "t2"
+    }
+   ]
+  },
+  {
+   "say": "Both add one to their own copy. Each now holds one, but sum is still zero.",
+   "draw": [
+    {
+     "op": "mark",
+     "id": "src",
+     "line": 2
+    },
+    {
+     "op": "set",
+     "id": "trace",
+     "row": 0,
+     "col": 0,
+     "value": "1"
+    },
+    {
+     "op": "set",
+     "id": "trace",
+     "row": 0,
+     "col": 1,
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "say": "Both store. Sum becomes one, then one again. Two increments, but sum only went up by one.",
+   "draw": [
+    {
+     "op": "mark",
+     "id": "src",
+     "line": 3
+    },
+    {
+     "op": "set",
+     "id": "trace",
+     "row": 0,
+     "col": 2,
+     "value": "1"
+    },
+    {
+     "op": "set",
+     "id": "mem",
+     "row": 0,
+     "value": "sum = 1",
+     "h": 1.12
+    }
+   ]
+  },
+  {
+   "say": "That is a race condition: the result depends on timing. A lock makes load, add and store one indivisible step.",
+   "draw": [
+    {
+     "op": "text",
+     "id": "note",
+     "x": 0,
+     "y": 7.4,
+     "w": 12,
+     "tone": "gray",
+     "text": "Lost update: both threads read 0 before either wrote. Fix: a mutex around load-add-store, or an atomic increment.",
+     "h": 0.42
+    }
+   ]
+  }
+ ]
+}
