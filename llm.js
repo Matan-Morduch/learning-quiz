@@ -93,7 +93,8 @@ class ClaudeProc {
     this.model = tierOf(tier);
     const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose',
       '--include-partial-messages', '--tools', '', '--setting-sources', '', '--strict-mcp-config', '--no-session-persistence',
-      '--system-prompt', system || '', '--model', this.model];
+      // From a file: a long prompt on the command line would hit Windows' 32K limit.
+      '--system-prompt-file', systemFile(system), '--model', this.model];
     if (process.env.QUIZ_AI_EFFORT) args.push('--effort', process.env.QUIZ_AI_EFFORT);
     this.buf = ''; this.stderr = ''; this.cur = null; this.dead = false;
     // Detached: a kill reaches the whole group (the CLI can be a wrapper script that starts the real binary).

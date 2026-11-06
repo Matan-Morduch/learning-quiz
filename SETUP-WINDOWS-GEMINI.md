@@ -94,6 +94,8 @@ The setup then continues by itself.
 
 **What doesn't work on Windows:** the **Labs** (practice terminals), running code inside mock interviews, and voice dictation. Everything else (lessons, quizzes, AI grading, reviews, interviews) works.
 
+**Switching to Claude later:** the app can also use Claude (gear icon → **AI**), with a paid Claude plan. The easiest way to set it up is to run `$env:LQ_AI='claude';` followed by the Step 2 command, all on one line.
+
 **Where things are:**
 - The app: `C:\Users\<me>\LearningQuiz`
 - My questions and notes: its `Learning` folder (plain text files)

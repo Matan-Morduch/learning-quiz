@@ -25,6 +25,8 @@ rem Your questions and notes live next to the app, in the Learning folder.
 if "%QUIZ_LEARNING_DIR%"=="" set "QUIZ_LEARNING_DIR=%~dp0Learning"
 if not exist "%QUIZ_LEARNING_DIR%" mkdir "%QUIZ_LEARNING_DIR%"
 set "QUIZ_OPEN_BROWSER=1"
+rem The AI picked at install time is the default (Settings -> AI in the app can change it).
+if "%QUIZ_AI_ENGINE%"=="" if exist ".ai-engine" set /p QUIZ_AI_ENGINE=<".ai-engine"
 
 echo.
 echo  Learning Quiz is running at http://localhost:%PORT%/

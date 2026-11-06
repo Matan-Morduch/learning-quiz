@@ -4,7 +4,7 @@ Local quiz app that reads questions from this vault and tracks what you know.
 
 ## Windows (with Gemini)
 
-In PowerShell: `irm https://raw.githubusercontent.com/Matan-Morduch/learning-quiz/main/install-windows.ps1 | iex`. It installs Node.js and the Gemini CLI, downloads the app into `%USERPROFILE%\LearningQuiz`, adds a desktop shortcut, walks through the Google sign-in and opens the app. Run it again to update. [SETUP-WINDOWS.md](SETUP-WINDOWS.md) is a step-by-step guide written for a non-technical person to paste into an AI chat. Without Claude Code the app uses Gemini by default. On Windows, Labs, running code in interviews and dictation don't work.
+In PowerShell: `irm https://raw.githubusercontent.com/Matan-Morduch/learning-quiz/main/install-windows.ps1 | iex`. It installs Node.js and the Gemini CLI, downloads the app into `%USERPROFILE%\LearningQuiz`, adds a desktop shortcut, walks through the Google sign-in and opens the app. Run it again to update. With Claude Code instead of Gemini: `$env:LQ_AI='claude'; irm … | iex` (same URL). [SETUP-WINDOWS-GEMINI.md](SETUP-WINDOWS-GEMINI.md) and [SETUP-WINDOWS-CLAUDE.md](SETUP-WINDOWS-CLAUDE.md) are step-by-step guides written for a non-technical person to paste into an AI chat. Without Claude Code the app uses Gemini by default. On Windows, Labs, running code in interviews and dictation don't work.
 
 `deploy/publish-github.sh` publishes the committed code to the public GitHub repo the installer downloads from (one commit per publish, no history; `export-ignore` files in `.gitattributes` are left out).
 
